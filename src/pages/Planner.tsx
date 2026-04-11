@@ -1,25 +1,22 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Clock, Sparkles, AlertTriangle } from "lucide-react";
+import { Plus, Clock, AlertTriangle, Target, MessageSquare } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import AppShell from "@/components/AppShell";
-
-const days = [
-  { day: "MON", date: 21 },
-  { day: "TUE", date: 22 },
-  { day: "WED", date: 23 },
-  { day: "THU", date: 24, active: true },
-  { day: "FRI", date: 25 },
-];
-
-const events = [
-  { time: "09:00", end: "11:30", label: "ENDEAVOR", title: "Deep Work: Q4 Strategy", variant: "default" as const },
-  { time: "11:45", end: "12:30", label: "GOAL TASK", title: "Finalize Design Handoff", variant: "mint" as const, priority: "High Priority" },
-  { time: "14:00", end: "15:00", label: "ENDEAVOR", title: "Team Sync", variant: "default" as const },
-];
+import { useGoals } from "@/hooks/useGoals";
+import CreateGoalDialog from "@/components/CreateGoalDialog";
+import CheckInDialog from "@/components/CheckInDialog";
+import type { Goal } from "@/hooks/useGoals";
 
 const Planner = () => {
-  const [view, setView] = useState<"Daily" | "Weekly">("Daily");
+  const [view, setView] = useState<"Active" | "All">("Active");
+  const { data: goals, isLoading } = useGoals();
+  const [showCreate, setShowCreate] = useState(false);
+  const [checkInGoal, setCheckInGoal] = useState<Goal | null>(null);
+
+  const filtered = view === "Active"
+    ? goals?.filter((g) => g.status === "active") ?? []
+    : goals ?? [];
 
   return (
     <AppShell>
@@ -28,7 +25,7 @@ const Planner = () => {
         {/* Toggle */}
         <div className="flex items-center justify-between">
           <div className="flex rounded-full bg-card border border-border p-1">
-            {(["Daily", "Weekly"] as const).map((v) => (
+            {(["Active", "All"] as const).map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
@@ -40,82 +37,115 @@ const Planner = () => {
               </button>
             ))}
           </div>
-          <span className="text-sm text-muted-foreground font-medium">OCT 24</span>
+          <span className="text-sm text-muted-foreground font-medium">
+            {filtered.length} goal{filtered.length !== 1 ? "s" : ""}
+          </span>
         </div>
 
-        {/* Day Selector */}
-        <div className="flex gap-2 justify-between">
-          {days.map((d) => (
-            <button
-              key={d.date}
-              className={`flex flex-col items-center rounded-xl px-3 py-2.5 transition-all ${
-                d.active
-                  ? "gradient-mint text-primary-foreground shadow-mint"
-                  : "bg-card border border-border text-muted-foreground"
-              }`}
-            >
-              <span className="text-[10px] uppercase tracking-wider font-semibold">{d.day}</span>
-              <span className="text-lg font-bold mt-0.5">{d.date}</span>
-              {d.active && <div className="w-1 h-1 rounded-full bg-primary-foreground mt-1" />}
-            </button>
-          ))}
-        </div>
-
-        {/* Timeline */}
-        <div className="space-y-3">
-          {events.map((ev, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.08 }}
-              className={`rounded-xl p-4 border ${
-                ev.variant === "mint"
-                  ? "gradient-mint text-primary-foreground border-transparent shadow-mint"
-                  : "bg-card border-border shadow-card"
-              }`}
-            >
-              <p className={`text-[10px] uppercase tracking-widest font-semibold ${ev.variant === "mint" ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                {ev.label}
-              </p>
-              <h3 className="font-display text-lg font-bold mt-1">{ev.title}</h3>
-              <div className="flex items-center gap-2 mt-2">
-                {ev.priority && (
-                  <span className="flex items-center gap-1 text-xs font-medium">
-                    <Sparkles size={12} /> {ev.priority}
-                  </span>
-                )}
-                <span className={`flex items-center gap-1 text-xs ${ev.variant === "mint" ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
-                  <Clock size={12} /> {ev.time} — {ev.end}
-                </span>
-              </div>
-            </motion.div>
-          ))}
-
-          {/* Available Slot */}
-          <div className="flex items-center justify-center gap-2 py-4 text-muted-foreground">
-            <Plus size={14} />
-            <span className="text-[10px] uppercase tracking-widest font-semibold">Available Slot</span>
+        {/* Goals List */}
+        {isLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="rounded-xl bg-card p-4 border border-border animate-pulse h-28" />
+            ))}
           </div>
+        ) : filtered.length > 0 ? (
+          <div className="space-y-3">
+            {filtered.map((goal, i) => (
+              <motion.div
+                key={goal.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.08 }}
+                className={`rounded-xl p-4 border shadow-card ${
+                  goal.status === "completed"
+                    ? "bg-primary/5 border-primary/20"
+                    : "bg-card border-border"
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">
+                    {goal.category || "Goal"}
+                  </p>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase ${
+                    goal.status === "active"
+                      ? "bg-primary/10 text-primary"
+                      : goal.status === "completed"
+                      ? "bg-primary/20 text-primary"
+                      : "bg-muted text-muted-foreground"
+                  }`}>
+                    {goal.status}
+                  </span>
+                </div>
+                <h3 className="font-display text-lg font-bold">{goal.title}</h3>
+                {goal.description && (
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{goal.description}</p>
+                )}
+                <div className="flex items-center gap-3 mt-3">
+                  <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                    <motion.div
+                      className="h-full rounded-full gradient-mint"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${goal.progress}%` }}
+                      transition={{ duration: 0.6 }}
+                    />
+                  </div>
+                  <span className="text-primary text-sm font-bold">{goal.progress}%</span>
+                </div>
+                <div className="flex items-center justify-between mt-3">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Clock size={12} />
+                    <span className="capitalize">{goal.checkin_frequency} check-in</span>
+                    {goal.target_date && (
+                      <>
+                        <span>·</span>
+                        <span>Due {new Date(goal.target_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                      </>
+                    )}
+                  </div>
+                  {goal.status === "active" && (
+                    <button
+                      onClick={() => setCheckInGoal(goal)}
+                      className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                    >
+                      <MessageSquare size={12} /> Check In
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-border bg-card/50 p-8 text-center">
+            <Target size={32} className="text-muted-foreground mx-auto mb-3" />
+            <p className="font-display font-semibold text-lg">No goals yet</p>
+            <p className="text-sm text-muted-foreground mt-1">Tap + to create your first goal</p>
+          </div>
+        )}
 
-          {/* Emergency Commitment */}
-          <button className="w-full rounded-xl border border-dashed border-destructive/40 bg-destructive/5 p-4 flex items-center gap-3 hover:bg-destructive/10 transition-colors">
-            <AlertTriangle size={18} className="text-destructive" />
-            <div className="text-left">
-              <p className="font-semibold text-sm">Add Emergency Commitment</p>
-              <p className="text-xs text-muted-foreground">Auto-reschedules your goals around it</p>
-            </div>
-          </button>
-        </div>
-
-        {/* FAB */}
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          className="fixed bottom-24 right-6 h-14 w-14 rounded-2xl gradient-mint shadow-mint flex items-center justify-center"
-        >
-          <Plus size={24} className="text-primary-foreground" />
-        </motion.button>
+        {/* Emergency Commitment */}
+        <button className="w-full rounded-xl border border-dashed border-destructive/40 bg-destructive/5 p-4 flex items-center gap-3 hover:bg-destructive/10 transition-colors">
+          <AlertTriangle size={18} className="text-destructive" />
+          <div className="text-left">
+            <p className="font-semibold text-sm">Add Emergency Commitment</p>
+            <p className="text-xs text-muted-foreground">Auto-reschedules your goals around it</p>
+          </div>
+        </button>
       </div>
+
+      {/* FAB */}
+      <motion.button
+        whileTap={{ scale: 0.9 }}
+        onClick={() => setShowCreate(true)}
+        className="fixed bottom-24 right-6 h-14 w-14 rounded-2xl gradient-mint shadow-mint flex items-center justify-center z-40"
+      >
+        <Plus size={24} className="text-primary-foreground" />
+      </motion.button>
+
+      <CreateGoalDialog open={showCreate} onClose={() => setShowCreate(false)} />
+      {checkInGoal && (
+        <CheckInDialog open={!!checkInGoal} onClose={() => setCheckInGoal(null)} goal={checkInGoal} />
+      )}
     </AppShell>
   );
 };
