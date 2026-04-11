@@ -14,7 +14,130 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      check_ins: {
+        Row: {
+          created_at: string
+          goal_id: string
+          id: string
+          mood: number | null
+          notes: string | null
+          progress_value: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          goal_id: string
+          id?: string
+          mood?: number | null
+          notes?: string | null
+          progress_value: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          goal_id?: string
+          id?: string
+          mood?: number | null
+          notes?: string | null
+          progress_value?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "check_ins_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goal_steps: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          goal_id: string
+          id: string
+          step_order: number
+          title: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          goal_id: string
+          id?: string
+          step_order?: number
+          title: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          goal_id?: string
+          id?: string
+          step_order?: number
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_steps_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goals: {
+        Row: {
+          category: string | null
+          checkin_frequency: Database["public"]["Enums"]["checkin_frequency"]
+          created_at: string
+          description: string | null
+          id: string
+          progress: number
+          status: Database["public"]["Enums"]["goal_status"]
+          target_date: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          checkin_frequency?: Database["public"]["Enums"]["checkin_frequency"]
+          created_at?: string
+          description?: string | null
+          id?: string
+          progress?: number
+          status?: Database["public"]["Enums"]["goal_status"]
+          target_date?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          checkin_frequency?: Database["public"]["Enums"]["checkin_frequency"]
+          created_at?: string
+          description?: string | null
+          id?: string
+          progress?: number
+          status?: Database["public"]["Enums"]["goal_status"]
+          target_date?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +146,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      checkin_frequency: "weekly" | "monthly"
+      goal_status: "active" | "paused" | "completed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +274,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      checkin_frequency: ["weekly", "monthly"],
+      goal_status: ["active", "paused", "completed"],
+    },
   },
 } as const
