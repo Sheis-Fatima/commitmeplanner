@@ -150,7 +150,9 @@ const ResetPassword = () => {
             </>
           ) : (
             <div className="text-center py-8">
-              <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+              <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4 mx-auto">
+                <CheckCircle className="h-8 w-8 text-primary" />
+              </div>
               <h2 className="text-xl font-semibold text-foreground mb-2">Password Reset Complete</h2>
               <p className="text-muted-foreground mb-6">
                 Your password has been updated successfully. You can now sign in with your new password.
