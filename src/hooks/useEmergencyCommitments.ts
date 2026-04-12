@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, useAuthReady } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 export interface EmergencyCommitment {
@@ -19,7 +19,7 @@ export interface EmergencyCommitment {
 }
 
 export const useEmergencyCommitments = () => {
-  const { user } = useAuth();
+  const { user, isReady } = useAuthReady();
 
   return useQuery({
     queryKey: ["emergency_commitments", user?.id],
@@ -31,7 +31,7 @@ export const useEmergencyCommitments = () => {
       if (error) throw error;
       return data as EmergencyCommitment[];
     },
-    enabled: !!user,
+    enabled: isReady && !!user,
   });
 };
 
