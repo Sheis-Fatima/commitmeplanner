@@ -1,18 +1,25 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Clock, AlertTriangle, Target, MessageSquare } from "lucide-react";
+import { Plus, Clock, AlertTriangle, Target, MessageSquare, CheckCircle2 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import AppShell from "@/components/AppShell";
 import { useGoals } from "@/hooks/useGoals";
+import { useEmergencyCommitments, useResolveEmergency } from "@/hooks/useEmergencyCommitments";
 import CreateGoalDialog from "@/components/CreateGoalDialog";
 import CheckInDialog from "@/components/CheckInDialog";
+import EmergencyCommitmentDialog from "@/components/EmergencyCommitmentDialog";
 import type { Goal } from "@/hooks/useGoals";
 
 const Planner = () => {
   const [view, setView] = useState<"Active" | "All">("Active");
   const { data: goals, isLoading } = useGoals();
+  const { data: emergencies } = useEmergencyCommitments();
+  const resolveEmergency = useResolveEmergency();
   const [showCreate, setShowCreate] = useState(false);
+  const [showEmergency, setShowEmergency] = useState(false);
   const [checkInGoal, setCheckInGoal] = useState<Goal | null>(null);
+
+  const activeEmergencies = emergencies?.filter((e) => !e.resolved) ?? [];
 
   const filtered = view === "Active"
     ? goals?.filter((g) => g.status === "active") ?? []
@@ -22,6 +29,36 @@ const Planner = () => {
     <AppShell>
       <AppHeader />
       <div className="px-5 space-y-5 pt-2">
+        {/* Active Emergencies Banner */}
+        {activeEmergencies.map((em) => (
+          <motion.div
+            key={em.id}
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-xl bg-destructive/10 border border-destructive/30 p-4"
+          >
+            <div className="flex items-start gap-3">
+              <AlertTriangle size={18} className="text-destructive mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <p className="font-semibold text-sm">{em.title}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {em.priority === "critical" ? "🔴 Critical" : "🟠 High"} · {em.duration_days} days · Ends {new Date(em.end_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                </p>
+                {em.description && (
+                  <p className="text-xs text-muted-foreground mt-1">{em.description}</p>
+                )}
+              </div>
+              <button
+                onClick={() => resolveEmergency.mutate(em.id)}
+                disabled={resolveEmergency.isPending}
+                className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline shrink-0"
+              >
+                <CheckCircle2 size={14} /> Resolve
+              </button>
+            </div>
+          </motion.div>
+        ))}
+
         {/* Toggle */}
         <div className="flex items-center justify-between">
           <div className="flex rounded-full bg-card border border-border p-1">
@@ -60,6 +97,8 @@ const Planner = () => {
                 className={`rounded-xl p-4 border shadow-card ${
                   goal.status === "completed"
                     ? "bg-primary/5 border-primary/20"
+                    : goal.status === "paused"
+                    ? "bg-destructive/5 border-destructive/20"
                     : "bg-card border-border"
                 }`}
               >
@@ -72,7 +111,7 @@ const Planner = () => {
                       ? "bg-primary/10 text-primary"
                       : goal.status === "completed"
                       ? "bg-primary/20 text-primary"
-                      : "bg-muted text-muted-foreground"
+                      : "bg-destructive/10 text-destructive"
                   }`}>
                     {goal.status}
                   </span>
@@ -124,7 +163,10 @@ const Planner = () => {
         )}
 
         {/* Emergency Commitment */}
-        <button className="w-full rounded-xl border border-dashed border-destructive/40 bg-destructive/5 p-4 flex items-center gap-3 hover:bg-destructive/10 transition-colors">
+        <button
+          onClick={() => setShowEmergency(true)}
+          className="w-full rounded-xl border border-dashed border-destructive/40 bg-destructive/5 p-4 flex items-center gap-3 hover:bg-destructive/10 transition-colors"
+        >
           <AlertTriangle size={18} className="text-destructive" />
           <div className="text-left">
             <p className="font-semibold text-sm">Add Emergency Commitment</p>
@@ -143,6 +185,7 @@ const Planner = () => {
       </motion.button>
 
       <CreateGoalDialog open={showCreate} onClose={() => setShowCreate(false)} />
+      <EmergencyCommitmentDialog open={showEmergency} onClose={() => setShowEmergency(false)} />
       {checkInGoal && (
         <CheckInDialog open={!!checkInGoal} onClose={() => setCheckInGoal(null)} goal={checkInGoal} />
       )}
