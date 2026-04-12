@@ -44,7 +44,7 @@ const Auth = () => {
           },
         });
         if (error) throw error;
-        toast.success("Check your email to confirm your account!");
+        toast.success("Account created! Welcome to commitme!");
       } else if (mode === "signin") {
         if (!password.trim()) {
           toast.error("Please enter your password");
