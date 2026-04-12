@@ -64,16 +64,12 @@ export const useCreateEmergencyCommitment = () => {
 
       if (activeGoals && activeGoals.length > 0) {
         const pausePromises = activeGoals.map((goal) => {
-          const updates: Record<string, unknown> = { status: "paused" as const };
-
-          // Extend target_date by duration_days if it exists
           if (goal.target_date) {
             const targetDate = new Date(goal.target_date);
             targetDate.setDate(targetDate.getDate() + commitment.duration_days);
-            updates.target_date = targetDate.toISOString().split("T")[0];
+            return supabase.from("goals").update({ status: "paused" as const, target_date: targetDate.toISOString().split("T")[0] }).eq("id", goal.id);
           }
-
-          return supabase.from("goals").update(updates).eq("id", goal.id);
+          return supabase.from("goals").update({ status: "paused" as const }).eq("id", goal.id);
         });
         await Promise.all(pausePromises);
       }
