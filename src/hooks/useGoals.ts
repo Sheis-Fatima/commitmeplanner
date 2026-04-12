@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, useAuthReady } from "@/contexts/AuthContext";
 import { Tables, TablesInsert } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 
@@ -9,7 +9,7 @@ export type GoalStep = Tables<"goal_steps">;
 export type CheckIn = Tables<"check_ins">;
 
 export const useGoals = () => {
-  const { user } = useAuth();
+  const { user, isReady } = useAuthReady();
 
   return useQuery({
     queryKey: ["goals", user?.id],
@@ -21,13 +21,15 @@ export const useGoals = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: isReady && !!user,
   });
 };
 
 export const useGoalSteps = (goalId: string | undefined) => {
+  const { user, isReady } = useAuthReady();
+
   return useQuery({
-    queryKey: ["goal_steps", goalId],
+    queryKey: ["goal_steps", goalId, user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("goal_steps")
@@ -37,13 +39,15 @@ export const useGoalSteps = (goalId: string | undefined) => {
       if (error) throw error;
       return data;
     },
-    enabled: !!goalId,
+    enabled: isReady && !!user && !!goalId,
   });
 };
 
 export const useCheckIns = (goalId: string | undefined) => {
+  const { user, isReady } = useAuthReady();
+
   return useQuery({
-    queryKey: ["check_ins", goalId],
+    queryKey: ["check_ins", goalId, user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("check_ins")
@@ -53,7 +57,7 @@ export const useCheckIns = (goalId: string | undefined) => {
       if (error) throw error;
       return data;
     },
-    enabled: !!goalId,
+    enabled: isReady && !!user && !!goalId,
   });
 };
 
