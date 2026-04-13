@@ -104,6 +104,44 @@ export const useUpdateGoal = () => {
   });
 };
 
+export const useDeleteGoal = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      // Delete related steps and check-ins first
+      await supabase.from("goal_steps").delete().eq("goal_id", id);
+      await supabase.from("check_ins").delete().eq("goal_id", id);
+      const { error } = await supabase.from("goals").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["goals"] });
+      toast.success("Goal deleted");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+};
+
+export const useCompleteGoal = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("goals")
+        .update({ status: "completed" as const, progress: 100 })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["goals"] });
+      toast.success("Goal completed! 🎉");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+};
+
 export const useCreateGoalStep = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -157,7 +195,6 @@ export const useCreateCheckIn = () => {
         .single();
       if (error) throw error;
 
-      // Update goal progress
       await supabase
         .from("goals")
         .update({ progress: checkIn.progress_value })
@@ -169,6 +206,46 @@ export const useCreateCheckIn = () => {
       queryClient.invalidateQueries({ queryKey: ["check_ins", data.goal_id] });
       queryClient.invalidateQueries({ queryKey: ["goals"] });
       toast.success("Check-in recorded!");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+};
+
+export const useGenerateRoadmap = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (goal: Goal) => {
+      const { data, error } = await supabase.functions.invoke("generate-roadmap", {
+        body: {
+          goalTitle: goal.title,
+          goalDescription: goal.description,
+          goalCategory: goal.category,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const steps = data.steps as Array<{ title: string; description: string }>;
+
+      // Insert all steps
+      const inserts = steps.map((s, i) => ({
+        goal_id: goal.id,
+        user_id: user!.id,
+        title: s.title,
+        description: s.description,
+        step_order: i,
+      }));
+
+      const { error: insertError } = await supabase.from("goal_steps").insert(inserts);
+      if (insertError) throw insertError;
+
+      return steps;
+    },
+    onSuccess: (_data, goal) => {
+      queryClient.invalidateQueries({ queryKey: ["goal_steps", goal.id] });
+      toast.success("AI roadmap generated!");
     },
     onError: (err: Error) => toast.error(err.message),
   });

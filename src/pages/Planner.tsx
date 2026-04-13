@@ -1,20 +1,29 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { Plus, Clock, AlertTriangle, Target, MessageSquare, CheckCircle2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Plus, Clock, AlertTriangle, Target, MessageSquare, CheckCircle2, Trash2, Check, MoreVertical, Sparkles } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import AppShell from "@/components/AppShell";
-import { useGoals } from "@/hooks/useGoals";
+import { useGoals, useDeleteGoal, useCompleteGoal, useGenerateRoadmap } from "@/hooks/useGoals";
 import { useEmergencyCommitments, useResolveEmergency } from "@/hooks/useEmergencyCommitments";
 import CreateGoalDialog from "@/components/CreateGoalDialog";
 import CheckInDialog from "@/components/CheckInDialog";
 import EmergencyCommitmentDialog from "@/components/EmergencyCommitmentDialog";
 import type { Goal } from "@/hooks/useGoals";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Planner = () => {
   const [view, setView] = useState<"Active" | "All">("Active");
   const { data: goals, isLoading } = useGoals();
   const { data: emergencies } = useEmergencyCommitments();
   const resolveEmergency = useResolveEmergency();
+  const deleteGoal = useDeleteGoal();
+  const completeGoal = useCompleteGoal();
+  const generateRoadmap = useGenerateRoadmap();
   const [showCreate, setShowCreate] = useState(false);
   const [showEmergency, setShowEmergency] = useState(false);
   const [checkInGoal, setCheckInGoal] = useState<Goal | null>(null);
@@ -102,19 +111,51 @@ const Planner = () => {
                     : "bg-card border-border"
                 }`}
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">
-                    {goal.category || "Goal"}
-                  </p>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase ${
-                    goal.status === "active"
-                      ? "bg-primary/10 text-primary"
-                      : goal.status === "completed"
-                      ? "bg-primary/20 text-primary"
-                      : "bg-destructive/10 text-destructive"
-                  }`}>
-                    {goal.status}
-                  </span>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">
+                      {goal.category || "Goal"}
+                    </p>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase ${
+                      goal.status === "active"
+                        ? "bg-primary/10 text-primary"
+                        : goal.status === "completed"
+                        ? "bg-primary/20 text-primary"
+                        : "bg-destructive/10 text-destructive"
+                    }`}>
+                      {goal.status}
+                    </span>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="p-1 rounded-lg hover:bg-muted transition-colors">
+                        <MoreVertical size={16} className="text-muted-foreground" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      {goal.status === "active" && (
+                        <DropdownMenuItem
+                          onClick={() => completeGoal.mutate(goal.id)}
+                          className="gap-2"
+                        >
+                          <Check size={14} className="text-primary" /> Mark Complete
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem
+                        onClick={() => generateRoadmap.mutate(goal)}
+                        disabled={generateRoadmap.isPending}
+                        className="gap-2"
+                      >
+                        <Sparkles size={14} className="text-primary" /> AI Roadmap
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => deleteGoal.mutate(goal.id)}
+                        className="gap-2 text-destructive focus:text-destructive"
+                      >
+                        <Trash2 size={14} /> Delete Goal
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
                 <h3 className="font-display text-lg font-bold">{goal.title}</h3>
                 {goal.description && (

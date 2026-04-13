@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, X, Loader2 } from "lucide-react";
+import { AlertTriangle, X, Loader2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,12 +11,23 @@ interface Props {
   onClose: () => void;
 }
 
+const DAYS_OF_WEEK = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
 const EmergencyCommitmentDialog = ({ open, onClose }: Props) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<"high" | "critical">("high");
   const [durationDays, setDurationDays] = useState(7);
+  const [timeOfDay, setTimeOfDay] = useState("");
+  const [frequency, setFrequency] = useState<"daily" | "weekdays" | "weekends" | "custom">("daily");
+  const [customDays, setCustomDays] = useState<string[]>([]);
   const createEmergency = useCreateEmergencyCommitment();
+
+  const toggleDay = (day: string) => {
+    setCustomDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+    );
+  };
 
   const handleSubmit = () => {
     if (!title.trim()) return;
@@ -32,6 +43,9 @@ const EmergencyCommitmentDialog = ({ open, onClose }: Props) => {
         duration_days: durationDays,
         start_date: start.toISOString().split("T")[0],
         end_date: end.toISOString().split("T")[0],
+        time_of_day: timeOfDay || undefined,
+        frequency,
+        custom_days: frequency === "custom" ? customDays : undefined,
       },
       {
         onSuccess: () => {
@@ -39,6 +53,9 @@ const EmergencyCommitmentDialog = ({ open, onClose }: Props) => {
           setDescription("");
           setPriority("high");
           setDurationDays(7);
+          setTimeOfDay("");
+          setFrequency("daily");
+          setCustomDays([]);
           onClose();
         },
       }
@@ -60,7 +77,7 @@ const EmergencyCommitmentDialog = ({ open, onClose }: Props) => {
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 40 }}
-            className="fixed inset-x-4 bottom-8 z-50 max-w-md mx-auto rounded-2xl bg-card border border-destructive/30 shadow-2xl p-5 space-y-4"
+            className="fixed inset-x-4 bottom-8 z-50 max-w-md mx-auto rounded-2xl bg-card border border-destructive/30 shadow-2xl p-5 space-y-4 max-h-[80vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -92,6 +109,57 @@ const EmergencyCommitmentDialog = ({ open, onClose }: Props) => {
               rows={2}
               className="text-sm resize-none"
             />
+
+            {/* Time */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+                <Clock size={12} /> Time of Day
+              </p>
+              <Input
+                type="time"
+                value={timeOfDay}
+                onChange={(e) => setTimeOfDay(e.target.value)}
+                className="text-sm"
+              />
+            </div>
+
+            {/* Frequency */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-2">Schedule</p>
+              <div className="grid grid-cols-2 gap-2">
+                {(["daily", "weekdays", "weekends", "custom"] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setFrequency(f)}
+                    className={`py-2 rounded-lg text-sm font-semibold capitalize transition-all ${
+                      frequency === f
+                        ? "gradient-mint text-primary-foreground"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+
+              {frequency === "custom" && (
+                <div className="flex gap-1.5 mt-2 flex-wrap">
+                  {DAYS_OF_WEEK.map((day) => (
+                    <button
+                      key={day}
+                      onClick={() => toggleDay(day)}
+                      className={`w-10 h-10 rounded-lg text-xs font-semibold transition-all ${
+                        customDays.includes(day)
+                          ? "gradient-mint text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {day}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Priority */}
             <div>
