@@ -55,42 +55,51 @@ export type Database = {
       emergency_commitments: {
         Row: {
           created_at: string
+          custom_days: string[] | null
           description: string | null
           duration_days: number
           end_date: string
+          frequency: string
           id: string
           priority: string
           resolved: boolean
           resolved_at: string | null
           start_date: string
+          time_of_day: string | null
           title: string
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          custom_days?: string[] | null
           description?: string | null
           duration_days?: number
           end_date: string
+          frequency?: string
           id?: string
           priority?: string
           resolved?: boolean
           resolved_at?: string | null
           start_date?: string
+          time_of_day?: string | null
           title: string
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          custom_days?: string[] | null
           description?: string | null
           duration_days?: number
           end_date?: string
+          frequency?: string
           id?: string
           priority?: string
           resolved?: boolean
           resolved_at?: string | null
           start_date?: string
+          time_of_day?: string | null
           title?: string
           updated_at?: string
           user_id?: string
