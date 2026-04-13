@@ -151,12 +151,28 @@ const GoalStepsSection = ({ goal }: { goal: Goal }) => {
                   </Button>
                 </div>
               ) : (
-                <button
-                  onClick={() => setShowInput(true)}
-                  className="flex items-center gap-1.5 text-primary text-sm font-medium pt-1 hover:opacity-80 transition"
-                >
-                  <Plus size={14} /> Add Step
-                </button>
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    onClick={() => setShowInput(true)}
+                    className="flex items-center gap-1.5 text-primary text-sm font-medium hover:opacity-80 transition"
+                  >
+                    <Plus size={14} /> Add Step
+                  </button>
+                  {(!steps || steps.length === 0) && (
+                    <button
+                      onClick={() => generateRoadmap.mutate(goal)}
+                      disabled={generateRoadmap.isPending}
+                      className="flex items-center gap-1.5 text-primary text-sm font-medium hover:opacity-80 transition ml-auto"
+                    >
+                      {generateRoadmap.isPending ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <Sparkles size={14} />
+                      )}
+                      AI Roadmap
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </motion.div>
