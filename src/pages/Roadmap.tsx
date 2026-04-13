@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, Plus, ChevronDown, ChevronRight, Sparkles, Loader2 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import AppShell from "@/components/AppShell";
-import { useGoals, useGoalSteps, useCreateGoalStep, useToggleStep, Goal } from "@/hooks/useGoals";
+import { useGoals, useGoalSteps, useCreateGoalStep, useToggleStep, useGenerateRoadmap, Goal } from "@/hooks/useGoals";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -13,6 +13,7 @@ const GoalStepsSection = ({ goal }: { goal: Goal }) => {
   const { data: steps, isLoading } = useGoalSteps(goal.id);
   const createStep = useCreateGoalStep();
   const toggleStep = useToggleStep();
+  const generateRoadmap = useGenerateRoadmap();
   const [expanded, setExpanded] = useState(goal.status === "active");
   const [newStepTitle, setNewStepTitle] = useState("");
   const [showInput, setShowInput] = useState(false);
