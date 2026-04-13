@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, Plus, ChevronDown, ChevronRight, Sparkles, Loader2 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import AppShell from "@/components/AppShell";
-import { useGoals, useGoalSteps, useCreateGoalStep, useToggleStep, Goal } from "@/hooks/useGoals";
+import { useGoals, useGoalSteps, useCreateGoalStep, useToggleStep, useGenerateRoadmap, Goal } from "@/hooks/useGoals";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -13,6 +13,7 @@ const GoalStepsSection = ({ goal }: { goal: Goal }) => {
   const { data: steps, isLoading } = useGoalSteps(goal.id);
   const createStep = useCreateGoalStep();
   const toggleStep = useToggleStep();
+  const generateRoadmap = useGenerateRoadmap();
   const [expanded, setExpanded] = useState(goal.status === "active");
   const [newStepTitle, setNewStepTitle] = useState("");
   const [showInput, setShowInput] = useState(false);
@@ -150,12 +151,28 @@ const GoalStepsSection = ({ goal }: { goal: Goal }) => {
                   </Button>
                 </div>
               ) : (
-                <button
-                  onClick={() => setShowInput(true)}
-                  className="flex items-center gap-1.5 text-primary text-sm font-medium pt-1 hover:opacity-80 transition"
-                >
-                  <Plus size={14} /> Add Step
-                </button>
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    onClick={() => setShowInput(true)}
+                    className="flex items-center gap-1.5 text-primary text-sm font-medium hover:opacity-80 transition"
+                  >
+                    <Plus size={14} /> Add Step
+                  </button>
+                  {(!steps || steps.length === 0) && (
+                    <button
+                      onClick={() => generateRoadmap.mutate(goal)}
+                      disabled={generateRoadmap.isPending}
+                      className="flex items-center gap-1.5 text-primary text-sm font-medium hover:opacity-80 transition ml-auto"
+                    >
+                      {generateRoadmap.isPending ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <Sparkles size={14} />
+                      )}
+                      AI Roadmap
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </motion.div>

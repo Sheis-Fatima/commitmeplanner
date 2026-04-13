@@ -14,6 +14,9 @@ export interface EmergencyCommitment {
   end_date: string;
   resolved: boolean;
   resolved_at: string | null;
+  time_of_day: string | null;
+  frequency: string;
+  custom_days: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -47,8 +50,10 @@ export const useCreateEmergencyCommitment = () => {
       duration_days: number;
       start_date: string;
       end_date: string;
+      time_of_day?: string;
+      frequency?: string;
+      custom_days?: string[];
     }) => {
-      // 1. Create the emergency commitment
       const { data, error } = await supabase
         .from("emergency_commitments")
         .insert({ ...commitment, user_id: user!.id })
@@ -56,7 +61,7 @@ export const useCreateEmergencyCommitment = () => {
         .single();
       if (error) throw error;
 
-      // 2. Auto-reschedule: pause active goals and extend their target dates
+      // Auto-reschedule: pause active goals and extend their target dates
       const { data: activeGoals } = await supabase
         .from("goals")
         .select("id, target_date, status")
@@ -94,14 +99,12 @@ export const useResolveEmergency = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      // 1. Mark as resolved
       const { error } = await supabase
         .from("emergency_commitments")
         .update({ resolved: true, resolved_at: new Date().toISOString() })
         .eq("id", id);
       if (error) throw error;
 
-      // 2. Resume paused goals
       const { data: pausedGoals } = await supabase
         .from("goals")
         .select("id")
