@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateGoal } from "@/hooks/useGoals";
-import { useCreateEmergencyCommitment } from "@/hooks/useEmergencyCommitments";
+import { useCreateCommitment } from "@/hooks/useCommitments";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -37,7 +37,7 @@ const Onboarding = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const createGoal = useCreateGoal();
-  const createEmergency = useCreateEmergencyCommitment();
+  const createCommitment = useCreateCommitment();
 
   const [step, setStep] = useState(0);
 
@@ -88,16 +88,10 @@ const Onboarding = () => {
       }
 
       for (const c of commitments) {
-        const start = new Date();
-        const end = new Date();
-        end.setDate(end.getDate() + c.durationDays);
-        await createEmergency.mutateAsync({
+        await createCommitment.mutateAsync({
           title: c.title,
           description: c.description || undefined,
           priority: c.priority,
-          duration_days: c.durationDays,
-          start_date: start.toISOString().split("T")[0],
-          end_date: end.toISOString().split("T")[0],
           time_of_day: c.timeOfDay || undefined,
           frequency: c.frequency,
           custom_days: c.frequency === "custom" ? c.customDays : undefined,
