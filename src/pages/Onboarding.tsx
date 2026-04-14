@@ -45,8 +45,8 @@ const Onboarding = () => {
   const [frequency, setFrequency] = useState<"weekly" | "monthly">("weekly");
   const [targetDate, setTargetDate] = useState("");
 
-  const [commitments, setCommitments] = useState<Commitment[]>([]);
-  const [newCommitment, setNewCommitment] = useState<Commitment>({ ...defaultCommitment });
+  const [commitments, setCommitments] = useState<OnboardingCommitment[]>([]);
+  const [newCommitment, setNewCommitment] = useState<OnboardingCommitment>({ ...defaultCommitment });
   const [showAddCommitment, setShowAddCommitment] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
