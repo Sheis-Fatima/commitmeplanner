@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, ArrowLeft, Plus, X, Target, Zap, AlertTriangle, Loader2, Check, Clock } from "lucide-react";
+import { ArrowRight, ArrowLeft, Plus, X, Target, Zap, Briefcase, Loader2, Check, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
