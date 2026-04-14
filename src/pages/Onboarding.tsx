@@ -278,15 +278,13 @@ const Onboarding = () => {
                       animate={{ opacity: 1, y: 0 }}
                       className="rounded-xl bg-card border border-border p-3 flex items-center gap-3"
                     >
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                        c.priority === "critical" ? "bg-destructive/20" : "bg-accent/20"
-                      }`}>
-                        <AlertTriangle size={16} className={c.priority === "critical" ? "text-destructive" : "text-primary"} />
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-primary/10">
+                        <Briefcase size={16} className="text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold truncate">{c.title}</p>
                         <p className="text-xs text-muted-foreground">
-                          {frequencyLabel(c.frequency)}{c.timeOfDay ? ` · ${c.timeOfDay}` : ""} · {c.durationDays}d
+                          {frequencyLabel(c.frequency)}{c.timeOfDay ? ` · ${c.timeOfDay}` : ""}
                         </p>
                       </div>
                       <button onClick={() => removeCommitment(i)} className="text-muted-foreground hover:text-destructive">
@@ -366,39 +364,19 @@ const Onboarding = () => {
                   {/* Priority */}
                   <div className="flex gap-2">
                     <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold self-center mr-1">Priority:</p>
-                    {(["high", "critical"] as const).map((p) => (
+                    {(["low", "medium", "high"] as const).map((p) => (
                       <button
                         key={p}
                         onClick={() => setNewCommitment({ ...newCommitment, priority: p })}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all ${
                           newCommitment.priority === p
-                            ? p === "critical" ? "bg-destructive text-destructive-foreground" : "gradient-mint text-primary-foreground"
+                            ? "gradient-mint text-primary-foreground"
                             : "bg-secondary text-muted-foreground"
                         }`}
                       >
                         {p}
                       </button>
                     ))}
-                  </div>
-
-                  {/* Duration */}
-                  <div>
-                    <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold mb-2">Duration</p>
-                    <div className="flex gap-2">
-                      {[7, 14, 30, 90].map((d) => (
-                        <button
-                          key={d}
-                          onClick={() => setNewCommitment({ ...newCommitment, durationDays: d })}
-                          className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-                            newCommitment.durationDays === d
-                              ? "gradient-mint text-primary-foreground shadow-mint"
-                              : "bg-secondary text-muted-foreground"
-                          }`}
-                        >
-                          {d}d
-                        </button>
-                      ))}
-                    </div>
                   </div>
 
                   <div className="flex gap-2">
