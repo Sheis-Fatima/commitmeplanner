@@ -13,21 +13,19 @@ import { toast } from "sonner";
 const categories = ["Health", "Career", "Learning", "Finance", "Personal", "Creative"];
 const DAYS_OF_WEEK = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-interface Commitment {
+interface OnboardingCommitment {
   title: string;
   description: string;
-  priority: "high" | "critical";
-  durationDays: number;
+  priority: "low" | "medium" | "high";
   timeOfDay: string;
   frequency: "daily" | "weekdays" | "weekends" | "custom";
   customDays: string[];
 }
 
-const defaultCommitment: Commitment = {
+const defaultCommitment: OnboardingCommitment = {
   title: "",
   description: "",
-  priority: "high",
-  durationDays: 7,
+  priority: "medium",
   timeOfDay: "",
   frequency: "daily",
   customDays: [],
