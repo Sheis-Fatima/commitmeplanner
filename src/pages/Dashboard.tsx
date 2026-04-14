@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronRight, Flame, Zap, Plus, Target, MessageSquare, Briefcase, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { ChevronRight, Flame, Zap, Plus, Target, MessageSquare, Briefcase, AlertTriangle, CheckCircle2, Pencil } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import AppShell from "@/components/AppShell";
 import { useGoals } from "@/hooks/useGoals";
-import { useEmergencyCommitments, useResolveEmergency } from "@/hooks/useEmergencyCommitments";
+import { useCommitments, useResolveCommitment, type Commitment } from "@/hooks/useCommitments";
+import { useEmergencyCommitments } from "@/hooks/useEmergencyCommitments";
 import { useAuth } from "@/contexts/AuthContext";
 import CreateGoalDialog from "@/components/CreateGoalDialog";
 import CheckInDialog from "@/components/CheckInDialog";
+import CommitmentDialog from "@/components/CommitmentDialog";
 import EmergencyCommitmentDialog from "@/components/EmergencyCommitmentDialog";
 import type { Goal } from "@/hooks/useGoals";
 
@@ -20,10 +22,13 @@ const fadeUp = {
 const Dashboard = () => {
   const { user } = useAuth();
   const { data: goals, isLoading } = useGoals();
-  const { data: commitments } = useEmergencyCommitments();
-  const resolveEmergency = useResolveEmergency();
+  const { data: commitments } = useCommitments();
+  const { data: emergencies } = useEmergencyCommitments();
+  const resolveCommitment = useResolveCommitment();
   const [showCreate, setShowCreate] = useState(false);
   const [showAddCommitment, setShowAddCommitment] = useState(false);
+  const [showEmergency, setShowEmergency] = useState(false);
+  const [editingCommitment, setEditingCommitment] = useState<Commitment | null>(null);
   const [checkInGoal, setCheckInGoal] = useState<Goal | null>(null);
 
   const activeGoals = goals?.filter((g) => g.status === "active") ?? [];
@@ -33,6 +38,7 @@ const Dashboard = () => {
     : 0;
 
   const activeCommitments = commitments?.filter((c) => !c.resolved) ?? [];
+  const activeEmergencies = emergencies?.filter((c) => !c.resolved) ?? [];
   const pausedGoals = goals?.filter((g) => g.status === "paused") ?? [];
 
   const displayName = user?.user_metadata?.full_name?.split(" ")[0] || "there";
@@ -61,16 +67,26 @@ const Dashboard = () => {
           </p>
         </motion.div>
 
-        {/* Paused Goals Alert */}
-        {pausedGoals.length > 0 && (
+        {/* Emergency Alert */}
+        {activeEmergencies.length > 0 && (
           <motion.div {...fadeUp} className="rounded-xl bg-destructive/10 border border-destructive/30 p-4 flex items-center gap-3">
             <div className="rounded-lg bg-destructive/20 p-2">
               <AlertTriangle size={20} className="text-destructive" />
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-sm">{pausedGoals.length} Goal{pausedGoals.length !== 1 ? "s" : ""} Paused</p>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Resolve commitments to resume</p>
+              <p className="font-semibold text-sm">
+                {activeEmergencies.length} Emergency{activeEmergencies.length !== 1 ? " Commitments" : " Commitment"}
+              </p>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                {pausedGoals.length} goal{pausedGoals.length !== 1 ? "s" : ""} paused — resolve to resume
+              </p>
             </div>
+            <button
+              onClick={() => setShowEmergency(true)}
+              className="text-xs font-semibold text-destructive hover:underline"
+            >
+              View
+            </button>
           </motion.div>
         )}
 
@@ -144,15 +160,15 @@ const Dashboard = () => {
           </motion.div>
         )}
 
-        {/* Commitments Section */}
+        {/* Commitments Section (regular, non-emergency) */}
         <motion.div {...fadeUp} transition={{ delay: 0.1 }}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Briefcase size={18} className="text-primary" />
-              <h3 className="font-display font-semibold text-lg">Commitments</h3>
+              <h3 className="font-display font-semibold text-lg">My Schedule</h3>
             </div>
             <button
-              onClick={() => setShowAddCommitment(true)}
+              onClick={() => { setEditingCommitment(null); setShowAddCommitment(true); }}
               className="text-xs font-semibold text-primary flex items-center gap-1 hover:underline"
             >
               <Plus size={14} /> Add New
@@ -166,21 +182,26 @@ const Dashboard = () => {
                   key={c.id}
                   className="rounded-xl bg-card border border-border p-3 flex items-center gap-3"
                 >
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                    c.priority === "critical" ? "bg-destructive/20" : "bg-accent/20"
-                  }`}>
-                    <Briefcase size={16} className={c.priority === "critical" ? "text-destructive" : "text-primary"} />
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-primary/10">
+                    <Briefcase size={16} className="text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">{c.title}</p>
                     <p className="text-xs text-muted-foreground">
-                      {frequencyLabel(c.frequency)}{c.time_of_day ? ` · ${c.time_of_day}` : ""} · {c.duration_days}d
+                      {frequencyLabel(c.frequency)}{c.time_of_day ? ` · ${c.time_of_day}` : ""}
                     </p>
                   </div>
                   <button
-                    onClick={() => resolveEmergency.mutate(c.id)}
+                    onClick={() => { setEditingCommitment(c); setShowAddCommitment(true); }}
                     className="text-muted-foreground hover:text-primary transition-colors"
-                    title="Mark as resolved"
+                    title="Edit"
+                  >
+                    <Pencil size={16} />
+                  </button>
+                  <button
+                    onClick={() => resolveCommitment.mutate(c.id)}
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                    title="Mark as done"
                   >
                     <CheckCircle2 size={18} />
                   </button>
@@ -191,10 +212,10 @@ const Dashboard = () => {
             <div className="rounded-xl border border-dashed border-border bg-card/50 p-4 text-center">
               <p className="text-sm text-muted-foreground">No active commitments</p>
               <button
-                onClick={() => setShowAddCommitment(true)}
+                onClick={() => { setEditingCommitment(null); setShowAddCommitment(true); }}
                 className="text-xs font-semibold text-primary mt-1 hover:underline"
               >
-                Add one to plan around your schedule
+                Add tasks to plan around your schedule
               </button>
             </div>
           )}
@@ -241,7 +262,12 @@ const Dashboard = () => {
       </motion.button>
 
       <CreateGoalDialog open={showCreate} onClose={() => setShowCreate(false)} />
-      <EmergencyCommitmentDialog open={showAddCommitment} onClose={() => setShowAddCommitment(false)} />
+      <CommitmentDialog
+        open={showAddCommitment}
+        onClose={() => { setShowAddCommitment(false); setEditingCommitment(null); }}
+        editCommitment={editingCommitment}
+      />
+      <EmergencyCommitmentDialog open={showEmergency} onClose={() => setShowEmergency(false)} />
       {checkInGoal && (
         <CheckInDialog open={!!checkInGoal} onClose={() => setCheckInGoal(null)} goal={checkInGoal} />
       )}

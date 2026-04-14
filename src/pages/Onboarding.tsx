@@ -1,33 +1,31 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, ArrowLeft, Plus, X, Target, Zap, AlertTriangle, Loader2, Check, Clock } from "lucide-react";
+import { ArrowRight, ArrowLeft, Plus, X, Target, Zap, Briefcase, Loader2, Check, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateGoal } from "@/hooks/useGoals";
-import { useCreateEmergencyCommitment } from "@/hooks/useEmergencyCommitments";
+import { useCreateCommitment } from "@/hooks/useCommitments";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 const categories = ["Health", "Career", "Learning", "Finance", "Personal", "Creative"];
 const DAYS_OF_WEEK = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-interface Commitment {
+interface OnboardingCommitment {
   title: string;
   description: string;
-  priority: "high" | "critical";
-  durationDays: number;
+  priority: "low" | "medium" | "high";
   timeOfDay: string;
   frequency: "daily" | "weekdays" | "weekends" | "custom";
   customDays: string[];
 }
 
-const defaultCommitment: Commitment = {
+const defaultCommitment: OnboardingCommitment = {
   title: "",
   description: "",
-  priority: "high",
-  durationDays: 7,
+  priority: "medium",
   timeOfDay: "",
   frequency: "daily",
   customDays: [],
@@ -37,7 +35,7 @@ const Onboarding = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const createGoal = useCreateGoal();
-  const createEmergency = useCreateEmergencyCommitment();
+  const createCommitment = useCreateCommitment();
 
   const [step, setStep] = useState(0);
 
@@ -47,8 +45,8 @@ const Onboarding = () => {
   const [frequency, setFrequency] = useState<"weekly" | "monthly">("weekly");
   const [targetDate, setTargetDate] = useState("");
 
-  const [commitments, setCommitments] = useState<Commitment[]>([]);
-  const [newCommitment, setNewCommitment] = useState<Commitment>({ ...defaultCommitment });
+  const [commitments, setCommitments] = useState<OnboardingCommitment[]>([]);
+  const [newCommitment, setNewCommitment] = useState<OnboardingCommitment>({ ...defaultCommitment });
   const [showAddCommitment, setShowAddCommitment] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -88,16 +86,10 @@ const Onboarding = () => {
       }
 
       for (const c of commitments) {
-        const start = new Date();
-        const end = new Date();
-        end.setDate(end.getDate() + c.durationDays);
-        await createEmergency.mutateAsync({
+        await createCommitment.mutateAsync({
           title: c.title,
           description: c.description || undefined,
           priority: c.priority,
-          duration_days: c.durationDays,
-          start_date: start.toISOString().split("T")[0],
-          end_date: end.toISOString().split("T")[0],
           time_of_day: c.timeOfDay || undefined,
           frequency: c.frequency,
           custom_days: c.frequency === "custom" ? c.customDays : undefined,
@@ -286,15 +278,13 @@ const Onboarding = () => {
                       animate={{ opacity: 1, y: 0 }}
                       className="rounded-xl bg-card border border-border p-3 flex items-center gap-3"
                     >
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                        c.priority === "critical" ? "bg-destructive/20" : "bg-accent/20"
-                      }`}>
-                        <AlertTriangle size={16} className={c.priority === "critical" ? "text-destructive" : "text-primary"} />
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-primary/10">
+                        <Briefcase size={16} className="text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold truncate">{c.title}</p>
                         <p className="text-xs text-muted-foreground">
-                          {frequencyLabel(c.frequency)}{c.timeOfDay ? ` · ${c.timeOfDay}` : ""} · {c.durationDays}d
+                          {frequencyLabel(c.frequency)}{c.timeOfDay ? ` · ${c.timeOfDay}` : ""}
                         </p>
                       </div>
                       <button onClick={() => removeCommitment(i)} className="text-muted-foreground hover:text-destructive">
@@ -374,39 +364,19 @@ const Onboarding = () => {
                   {/* Priority */}
                   <div className="flex gap-2">
                     <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold self-center mr-1">Priority:</p>
-                    {(["high", "critical"] as const).map((p) => (
+                    {(["low", "medium", "high"] as const).map((p) => (
                       <button
                         key={p}
                         onClick={() => setNewCommitment({ ...newCommitment, priority: p })}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all ${
                           newCommitment.priority === p
-                            ? p === "critical" ? "bg-destructive text-destructive-foreground" : "gradient-mint text-primary-foreground"
+                            ? "gradient-mint text-primary-foreground"
                             : "bg-secondary text-muted-foreground"
                         }`}
                       >
                         {p}
                       </button>
                     ))}
-                  </div>
-
-                  {/* Duration */}
-                  <div>
-                    <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold mb-2">Duration</p>
-                    <div className="flex gap-2">
-                      {[7, 14, 30, 90].map((d) => (
-                        <button
-                          key={d}
-                          onClick={() => setNewCommitment({ ...newCommitment, durationDays: d })}
-                          className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-                            newCommitment.durationDays === d
-                              ? "gradient-mint text-primary-foreground shadow-mint"
-                              : "bg-secondary text-muted-foreground"
-                          }`}
-                        >
-                          {d}d
-                        </button>
-                      ))}
-                    </div>
                   </div>
 
                   <div className="flex gap-2">
@@ -478,7 +448,7 @@ const Onboarding = () => {
                 {commitments.length > 0 && (
                   <div className="rounded-xl bg-card border border-border p-4 shadow-card">
                     <div className="flex items-center gap-2 mb-2">
-                      <AlertTriangle size={16} className="text-primary" />
+                      <Briefcase size={16} className="text-primary" />
                       <p className="text-xs uppercase tracking-widest font-semibold text-primary">
                         Commitments ({commitments.length})
                       </p>
