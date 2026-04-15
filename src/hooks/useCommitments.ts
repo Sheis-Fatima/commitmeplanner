@@ -10,6 +10,8 @@ export interface Commitment {
   description: string | null;
   priority: string;
   time_of_day: string | null;
+  start_time: string | null;
+  end_time: string | null;
   frequency: string;
   custom_days: string[] | null;
   resolved: boolean;
@@ -45,6 +47,8 @@ export const useCreateCommitment = () => {
       description?: string;
       priority?: string;
       time_of_day?: string;
+      start_time?: string;
+      end_time?: string;
       frequency?: string;
       custom_days?: string[];
     }) => {
@@ -74,6 +78,8 @@ export const useUpdateCommitment = () => {
       description?: string;
       priority?: string;
       time_of_day?: string;
+      start_time?: string;
+      end_time?: string;
       frequency?: string;
       custom_days?: string[];
     }) => {

@@ -18,7 +18,8 @@ const CommitmentDialog = ({ open, onClose, editCommitment }: Props) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
-  const [timeOfDay, setTimeOfDay] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [frequency, setFrequency] = useState<"daily" | "weekdays" | "weekends" | "custom">("daily");
   const [customDays, setCustomDays] = useState<string[]>([]);
 
@@ -31,7 +32,8 @@ const CommitmentDialog = ({ open, onClose, editCommitment }: Props) => {
       setTitle(editCommitment.title);
       setDescription(editCommitment.description || "");
       setPriority((editCommitment.priority as "low" | "medium" | "high") || "medium");
-      setTimeOfDay(editCommitment.time_of_day || "");
+      setStartTime(editCommitment.start_time || "");
+      setEndTime(editCommitment.end_time || "");
       setFrequency((editCommitment.frequency as "daily" | "weekdays" | "weekends" | "custom") || "daily");
       setCustomDays(editCommitment.custom_days || []);
     } else {
@@ -43,7 +45,8 @@ const CommitmentDialog = ({ open, onClose, editCommitment }: Props) => {
     setTitle("");
     setDescription("");
     setPriority("medium");
-    setTimeOfDay("");
+    setStartTime("");
+    setEndTime("");
     setFrequency("daily");
     setCustomDays([]);
   };
@@ -60,7 +63,8 @@ const CommitmentDialog = ({ open, onClose, editCommitment }: Props) => {
       title: title.trim(),
       description: description.trim() || undefined,
       priority,
-      time_of_day: timeOfDay || undefined,
+      start_time: startTime || undefined,
+      end_time: endTime || undefined,
       frequency,
       custom_days: frequency === "custom" ? customDays : undefined,
     };
@@ -128,17 +132,28 @@ const CommitmentDialog = ({ open, onClose, editCommitment }: Props) => {
               className="text-sm resize-none"
             />
 
-            {/* Time */}
+            {/* Time Range */}
             <div>
               <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
-                <Clock size={12} /> Time of Day
+                <Clock size={12} /> Time Range
               </p>
-              <Input
-                type="time"
-                value={timeOfDay}
-                onChange={(e) => setTimeOfDay(e.target.value)}
-                className="text-sm"
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className="text-sm flex-1"
+                  placeholder="Start"
+                />
+                <span className="text-xs text-muted-foreground">to</span>
+                <Input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="text-sm flex-1"
+                  placeholder="End"
+                />
+              </div>
             </div>
 
             {/* Frequency */}

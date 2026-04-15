@@ -57,11 +57,13 @@ export type Database = {
           created_at: string
           custom_days: string[] | null
           description: string | null
+          end_time: string | null
           frequency: string
           id: string
           priority: string
           resolved: boolean
           resolved_at: string | null
+          start_time: string | null
           time_of_day: string | null
           title: string
           updated_at: string
@@ -71,11 +73,13 @@ export type Database = {
           created_at?: string
           custom_days?: string[] | null
           description?: string | null
+          end_time?: string | null
           frequency?: string
           id?: string
           priority?: string
           resolved?: boolean
           resolved_at?: string | null
+          start_time?: string | null
           time_of_day?: string | null
           title: string
           updated_at?: string
@@ -85,11 +89,13 @@ export type Database = {
           created_at?: string
           custom_days?: string[] | null
           description?: string | null
+          end_time?: string | null
           frequency?: string
           id?: string
           priority?: string
           resolved?: boolean
           resolved_at?: string | null
+          start_time?: string | null
           time_of_day?: string | null
           title?: string
           updated_at?: string
