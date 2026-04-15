@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronRight, Flame, Zap, Plus, Target, MessageSquare, Briefcase, AlertTriangle, CheckCircle2, Pencil } from "lucide-react";
+import { ChevronRight, Flame, Zap, Plus, Target, MessageSquare, Briefcase, CalendarX2, CheckCircle2, Pencil } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import AppShell from "@/components/AppShell";
 import { useGoals } from "@/hooks/useGoals";
@@ -10,7 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import CreateGoalDialog from "@/components/CreateGoalDialog";
 import CheckInDialog from "@/components/CheckInDialog";
 import CommitmentDialog from "@/components/CommitmentDialog";
-import EmergencyCommitmentDialog from "@/components/EmergencyCommitmentDialog";
+import QuickAdjustDialog from "@/components/QuickAdjustDialog";
 import type { Goal } from "@/hooks/useGoals";
 
 const fadeUp = {
@@ -69,13 +69,13 @@ const Dashboard = () => {
 
         {/* Emergency Alert */}
         {activeEmergencies.length > 0 && (
-          <motion.div {...fadeUp} className="rounded-xl bg-destructive/10 border border-destructive/30 p-4 flex items-center gap-3">
-            <div className="rounded-lg bg-destructive/20 p-2">
-              <AlertTriangle size={20} className="text-destructive" />
+          <motion.div {...fadeUp} className="rounded-xl bg-amber-500/10 border border-amber-500/30 p-4 flex items-center gap-3">
+            <div className="rounded-lg bg-amber-500/20 p-2">
+              <CalendarX2 size={20} className="text-amber-600" />
             </div>
             <div className="flex-1">
               <p className="font-semibold text-sm">
-                {activeEmergencies.length} Emergency{activeEmergencies.length !== 1 ? " Commitments" : " Commitment"}
+                Something came up
               </p>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
                 {pausedGoals.length} goal{pausedGoals.length !== 1 ? "s" : ""} paused — resolve to resume
@@ -83,7 +83,7 @@ const Dashboard = () => {
             </div>
             <button
               onClick={() => setShowEmergency(true)}
-              className="text-xs font-semibold text-destructive hover:underline"
+              className="text-xs font-semibold text-amber-600 hover:underline"
             >
               View
             </button>
@@ -267,7 +267,7 @@ const Dashboard = () => {
         onClose={() => { setShowAddCommitment(false); setEditingCommitment(null); }}
         editCommitment={editingCommitment}
       />
-      <EmergencyCommitmentDialog open={showEmergency} onClose={() => setShowEmergency(false)} />
+      <QuickAdjustDialog open={showEmergency} onClose={() => setShowEmergency(false)} />
       {checkInGoal && (
         <CheckInDialog open={!!checkInGoal} onClose={() => setCheckInGoal(null)} goal={checkInGoal} />
       )}
