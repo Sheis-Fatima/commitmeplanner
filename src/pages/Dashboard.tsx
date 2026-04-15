@@ -188,7 +188,8 @@ const Dashboard = () => {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">{c.title}</p>
                     <p className="text-xs text-muted-foreground">
-                      {frequencyLabel(c.frequency)}{c.time_of_day ? ` · ${c.time_of_day}` : ""}
+                      {frequencyLabel(c.frequency)}
+                      {c.start_time && c.end_time ? ` · ${c.start_time} – ${c.end_time}` : c.start_time ? ` · ${c.start_time}` : ""}
                     </p>
                   </div>
                   <button
