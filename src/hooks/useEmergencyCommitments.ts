@@ -85,9 +85,9 @@ export const useCreateEmergencyCommitment = () => {
       queryClient.invalidateQueries({ queryKey: ["emergency_commitments"] });
       queryClient.invalidateQueries({ queryKey: ["goals"] });
       if (pausedCount > 0) {
-        toast.success(`Emergency added! ${pausedCount} goal${pausedCount !== 1 ? "s" : ""} paused & rescheduled.`);
+        toast.success(`Plan adjusted! ${pausedCount} goal${pausedCount !== 1 ? "s" : ""} paused, deadlines extended.`);
       } else {
-        toast.success("Emergency commitment added!");
+        toast.success("Plan adjusted!");
       }
     },
     onError: (err: Error) => toast.error(err.message),
@@ -124,9 +124,9 @@ export const useResolveEmergency = () => {
       queryClient.invalidateQueries({ queryKey: ["emergency_commitments"] });
       queryClient.invalidateQueries({ queryKey: ["goals"] });
       if (resumedCount > 0) {
-        toast.success(`Emergency resolved! ${resumedCount} goal${resumedCount !== 1 ? "s" : ""} resumed.`);
+        toast.success(`You're back on track! ${resumedCount} goal${resumedCount !== 1 ? "s" : ""} resumed.`);
       } else {
-        toast.success("Emergency resolved!");
+        toast.success("You're back on track!");
       }
     },
     onError: (err: Error) => toast.error(err.message),

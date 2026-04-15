@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Clock, AlertTriangle, Target, MessageSquare, CheckCircle2, Trash2, Check, MoreVertical, Sparkles } from "lucide-react";
+import { Plus, Clock, CalendarX2, Target, MessageSquare, CheckCircle2, Trash2, Check, MoreVertical, Sparkles } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import AppShell from "@/components/AppShell";
 import { useGoals, useDeleteGoal, useCompleteGoal, useGenerateRoadmap } from "@/hooks/useGoals";
 import { useEmergencyCommitments, useResolveEmergency } from "@/hooks/useEmergencyCommitments";
 import CreateGoalDialog from "@/components/CreateGoalDialog";
 import CheckInDialog from "@/components/CheckInDialog";
-import EmergencyCommitmentDialog from "@/components/EmergencyCommitmentDialog";
+import QuickAdjustDialog from "@/components/QuickAdjustDialog";
 import type { Goal } from "@/hooks/useGoals";
 import {
   DropdownMenu,
@@ -44,18 +44,15 @@ const Planner = () => {
             key={em.id}
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-xl bg-destructive/10 border border-destructive/30 p-4"
+            className="rounded-xl bg-amber-500/10 border border-amber-500/30 p-4"
           >
             <div className="flex items-start gap-3">
-              <AlertTriangle size={18} className="text-destructive mt-0.5 shrink-0" />
+              <CalendarX2 size={18} className="text-amber-600 mt-0.5 shrink-0" />
               <div className="flex-1">
                 <p className="font-semibold text-sm">{em.title}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {em.priority === "critical" ? "🔴 Critical" : "🟠 High"} · {em.duration_days} days · Ends {new Date(em.end_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  {em.duration_days} day{em.duration_days !== 1 ? "s" : ""} · Ends {new Date(em.end_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                 </p>
-                {em.description && (
-                  <p className="text-xs text-muted-foreground mt-1">{em.description}</p>
-                )}
               </div>
               <button
                 onClick={() => resolveEmergency.mutate(em.id)}
@@ -203,15 +200,15 @@ const Planner = () => {
           </div>
         )}
 
-        {/* Emergency Commitment */}
+        {/* Something Came Up */}
         <button
           onClick={() => setShowEmergency(true)}
-          className="w-full rounded-xl border border-dashed border-destructive/40 bg-destructive/5 p-4 flex items-center gap-3 hover:bg-destructive/10 transition-colors"
+          className="w-full rounded-xl border border-dashed border-amber-500/40 bg-amber-500/5 p-4 flex items-center gap-3 hover:bg-amber-500/10 transition-colors"
         >
-          <AlertTriangle size={18} className="text-destructive" />
+          <CalendarX2 size={18} className="text-amber-600" />
           <div className="text-left">
-            <p className="font-semibold text-sm">Add Emergency Commitment</p>
-            <p className="text-xs text-muted-foreground">Auto-reschedules your goals around it</p>
+            <p className="font-semibold text-sm">Something Came Up?</p>
+            <p className="text-xs text-muted-foreground">Auto-adjusts your plan around it</p>
           </div>
         </button>
       </div>
@@ -226,7 +223,7 @@ const Planner = () => {
       </motion.button>
 
       <CreateGoalDialog open={showCreate} onClose={() => setShowCreate(false)} />
-      <EmergencyCommitmentDialog open={showEmergency} onClose={() => setShowEmergency(false)} />
+      <QuickAdjustDialog open={showEmergency} onClose={() => setShowEmergency(false)} />
       {checkInGoal && (
         <CheckInDialog open={!!checkInGoal} onClose={() => setCheckInGoal(null)} goal={checkInGoal} />
       )}
