@@ -16,21 +16,15 @@ const ResetPassword = () => {
   const [isValidSession, setIsValidSession] = useState(false);
 
   useEffect(() => {
-    // Check if this is a valid recovery session
+    // Check if there's a valid session (set by the recovery token)
     const checkSession = async () => {
       const { data, error } = await supabase.auth.getSession();
       if (error || !data.session) {
         toast.error("Invalid or expired reset link. Please request a new one.");
         navigate("/auth");
       } else {
-        // Check if this is a recovery session by looking at the URL hash
-        const hash = window.location.hash;
-        if (hash.includes("type=recovery") || hash.includes("access_token")) {
-          setIsValidSession(true);
-        } else {
-          toast.error("Invalid reset link. Please request a new one.");
-          navigate("/auth");
-        }
+        // Session exists from recovery token — allow password reset
+        setIsValidSession(true);
       }
     };
 

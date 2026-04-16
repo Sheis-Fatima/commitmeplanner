@@ -34,8 +34,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let isMounted = true;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, nextSession) => {
+      (event, nextSession) => {
         if (!isMounted) return;
+
+        // Intercept password recovery — redirect before dashboard renders
+        if (event === "PASSWORD_RECOVERY") {
+          window.location.href = "/reset-password";
+          return;
+        }
 
         setSession(nextSession);
 
