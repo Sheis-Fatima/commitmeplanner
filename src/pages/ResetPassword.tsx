@@ -152,7 +152,10 @@ const ResetPassword = () => {
                 Your password has been updated successfully. You can now sign in with your new password.
               </p>
               <Button
-                onClick={() => navigate("/auth")}
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                  navigate("/auth");
+                }}
                 className="w-full h-12 rounded-xl gradient-mint text-primary-foreground font-semibold text-base shadow-mint hover:opacity-90 transition-opacity"
               >
                 Go to Sign In
