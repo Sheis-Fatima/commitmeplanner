@@ -17,7 +17,8 @@ interface OnboardingCommitment {
   title: string;
   description: string;
   priority: "low" | "medium" | "high";
-  timeOfDay: string;
+  startTime: string;
+  endTime: string;
   frequency: "daily" | "weekdays" | "weekends" | "custom";
   customDays: string[];
 }
@@ -26,7 +27,8 @@ const defaultCommitment: OnboardingCommitment = {
   title: "",
   description: "",
   priority: "medium",
-  timeOfDay: "",
+  startTime: "",
+  endTime: "",
   frequency: "daily",
   customDays: [],
 };
@@ -90,7 +92,8 @@ const Onboarding = () => {
           title: c.title,
           description: c.description || undefined,
           priority: c.priority,
-          time_of_day: c.timeOfDay || undefined,
+          start_time: c.startTime || undefined,
+          end_time: c.endTime || undefined,
           frequency: c.frequency,
           custom_days: c.frequency === "custom" ? c.customDays : undefined,
         });
@@ -284,7 +287,7 @@ const Onboarding = () => {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold truncate">{c.title}</p>
                         <p className="text-xs text-muted-foreground">
-                          {frequencyLabel(c.frequency)}{c.timeOfDay ? ` · ${c.timeOfDay}` : ""}
+                          {frequencyLabel(c.frequency)}{c.startTime && c.endTime ? ` · ${c.startTime} – ${c.endTime}` : c.startTime ? ` · ${c.startTime}` : ""}
                         </p>
                       </div>
                       <button onClick={() => removeCommitment(i)} className="text-muted-foreground hover:text-destructive">
@@ -310,17 +313,31 @@ const Onboarding = () => {
                     className="bg-secondary border-border rounded-xl text-foreground min-h-[60px]"
                   />
 
-                  {/* Time of Day */}
+                  {/* Time Range */}
                   <div>
                     <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
-                      <Clock size={12} /> Time of Day
+                      <Clock size={12} /> Time Range
                     </p>
-                    <Input
-                      type="time"
-                      value={newCommitment.timeOfDay}
-                      onChange={(e) => setNewCommitment({ ...newCommitment, timeOfDay: e.target.value })}
-                      className="bg-secondary border-border h-10 rounded-xl text-foreground"
-                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] text-muted-foreground mb-1 block">Start Time</label>
+                        <Input
+                          type="time"
+                          value={newCommitment.startTime}
+                          onChange={(e) => setNewCommitment({ ...newCommitment, startTime: e.target.value })}
+                          className="bg-secondary border-border h-10 rounded-xl text-foreground"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-muted-foreground mb-1 block">End Time</label>
+                        <Input
+                          type="time"
+                          value={newCommitment.endTime}
+                          onChange={(e) => setNewCommitment({ ...newCommitment, endTime: e.target.value })}
+                          className="bg-secondary border-border h-10 rounded-xl text-foreground"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   {/* Frequency / Schedule */}
@@ -459,7 +476,7 @@ const Onboarding = () => {
                         <p className="text-sm">
                           {c.title}{" "}
                           <span className="text-muted-foreground">
-                            · {frequencyLabel(c.frequency)}{c.timeOfDay ? ` @ ${c.timeOfDay}` : ""}
+                            · {frequencyLabel(c.frequency)}{c.startTime && c.endTime ? ` · ${c.startTime} – ${c.endTime}` : ""}
                           </span>
                         </p>
                       </div>
