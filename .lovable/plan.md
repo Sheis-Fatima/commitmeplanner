@@ -1,43 +1,37 @@
 
 
-## Plan: Redesign "Emergency Commitment" as "Something Came Up" Quick Adjust
+## Plan: Add Start/End Time to Onboarding Commitments + Fix Password Reset Redirect
 
-### Summary
-Replace the current complex emergency commitment dialog with a simplified, friendly "Something Came Up" screen. Streamline inputs to 3 fields, add an "All day" toggle, and show an automatic impact summary (paused goals, extended deadlines) before confirming.
+### Problem 1: Onboarding commitments use single "Time of Day" instead of start/end time range
+### Problem 2: Password reset link redirects to dashboard instead of the reset password page (because `ProtectedRoute` and `AuthContext` see a valid session from the recovery token and redirect away)
+
+---
 
 ### Changes
 
-**1. Redesign `EmergencyCommitmentDialog.tsx` → `QuickAdjustDialog.tsx`**
-- Rename component and file
-- New header: "Something Came Up" with a softer icon (Clock or CalendarX instead of AlertTriangle)
-- Simplified form with only 3 inputs:
-  - "What happened?" — single text input (required)
-  - Time selector — toggle between "All day" and a specific time picker
-  - Duration — 3 pill buttons: "1 day", "3 days", "1 week"
-- Remove: description textarea, priority selector, frequency/custom days selectors
-- Add an **impact preview section** below the form showing: "This will pause X active goals and extend deadlines by Y days"
-- Friendly submit button: "Adjust My Plan" (primary color, not destructive red)
-- After submission, show a brief summary toast: "Plan adjusted! X goals paused, deadlines extended by Y days"
+**1. Update Onboarding commitment form with start/end times**
+- File: `src/pages/Onboarding.tsx`
+- Replace `timeOfDay: string` in `OnboardingCommitment` interface with `startTime: string` and `endTime: string`
+- Update `defaultCommitment` accordingly
+- Replace the single "Time of Day" input with two time inputs: "Start Time" and "End Time"
+- Update the commitment display to show time range (e.g., `9:00 – 17:00`)
+- Update the `handleFinish` submission to pass `start_time` and `end_time` instead of `time_of_day`
 
-**2. Update `useEmergencyCommitments.ts` hook**
-- Simplify `useCreateEmergencyCommitment` mutation input — default priority to "high", frequency to "daily", remove custom_days
-- After pausing goals, call the `generate-roadmap` edge function for each active goal to suggest updated steps (returned in success callback)
-- Update success toast to use friendlier language ("Plan adjusted!" instead of "Emergency added!")
+**2. Fix password reset flow — prevent ProtectedRoute from hijacking recovery sessions**
+- File: `src/contexts/AuthContext.tsx`
+  - In `onAuthStateChange`, detect `PASSWORD_RECOVERY` event and set a flag (e.g., `isRecoverySession`) in context or redirect to `/reset-password`
+- File: `src/pages/ResetPassword.tsx`
+  - Simplify session validation — listen for `PASSWORD_RECOVERY` event from auth state change instead of fragile URL hash checking
+  - Remove the redirect-to-auth logic that fires when hash doesn't contain recovery params (the hash gets consumed by Supabase client before the component mounts)
+- File: `src/components/ProtectedRoute.tsx`
+  - Check if the current URL is `/reset-password` or if there's a recovery event, and skip the auth redirect in that case
 
-**3. Update `useResolveEmergency` hook**
-- Change toast to "You're back on track! X goals resumed."
-
-**4. Update all references across the app**
-- `Dashboard.tsx`: Replace `EmergencyCommitmentDialog` import with `QuickAdjustDialog`, rename button label from emergency-related to "Something Came Up"
-- `Planner.tsx`: Same import swap, update emergency banner text to "Something came up" with softer styling (amber instead of red)
-- `Onboarding.tsx`: If emergency dialog is referenced, update import
-
-**5. No database changes needed**
-- The existing `emergency_commitments` table already supports all needed fields; we just default some values in code.
+  Alternative (simpler): In `AuthContext`, when `onAuthStateChange` fires with event `PASSWORD_RECOVERY`, use `window.location` to navigate to `/reset-password` before the app renders the dashboard. This way the recovery session is intercepted at the auth layer.
 
 ### Technical Details
-- New file: `src/components/QuickAdjustDialog.tsx`
-- Delete: `src/components/EmergencyCommitmentDialog.tsx`
-- Edit: `src/hooks/useEmergencyCommitments.ts`, `src/pages/Dashboard.tsx`, `src/pages/Planner.tsx`
-- The impact preview will query active goals count client-side from the existing `useGoals` hook passed as a prop
+
+- The `PASSWORD_RECOVERY` event fires in `onAuthStateChange` when a user clicks the reset link. We intercept this event in `AuthContext` and navigate to `/reset-password`.
+- Since `ResetPassword` is NOT wrapped in `ProtectedRoute`, once we navigate there, the user stays on that page.
+- The `ResetPassword` page already calls `supabase.auth.updateUser({ password })` which is correct — it just needs to reliably reach this page.
+- For onboarding times: the `commitments` table already has `start_time` and `end_time` columns from the previous migration.
 
