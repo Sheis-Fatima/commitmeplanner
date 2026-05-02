@@ -1,11 +1,15 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MessageSquare, Smile, Meh, Frown, Heart, Star } from "lucide-react";
+import { X, MessageSquare, Smile, Meh, Frown, Heart, Star, FileUp, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { useCreateCheckIn } from "@/hooks/useGoals";
 import type { Goal } from "@/hooks/useGoals";
+import { useMilestones, useToggleMilestone, useValidateCheckInPdf } from "@/hooks/useMilestones";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface CheckInDialogProps {
   open: boolean;
@@ -26,19 +30,86 @@ const CheckInDialog = ({ open, onClose, goal }: CheckInDialogProps) => {
   const [progress, setProgress] = useState([goal.progress]);
   const [mood, setMood] = useState<number | null>(null);
   const createCheckIn = useCreateCheckIn();
+  const { user } = useAuth();
+  const { data: milestones } = useMilestones(goal.id);
+  const validate = useValidateCheckInPdf();
+  const toggleMilestone = useToggleMilestone();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const nextMilestone = (milestones || []).find((m) => !m.completed) || null;
+
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [pdfPath, setPdfPath] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [evaluation, setEvaluation] = useState<{ score: number; feedback: string; meets_expectations: boolean } | null>(null);
+  const [override, setOverride] = useState(false);
+
+  const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.type !== "application/pdf") {
+      toast.error("Please upload a PDF");
+      return;
+    }
+    if (f.size > 10 * 1024 * 1024) {
+      toast.error("Max 10MB");
+      return;
+    }
+    setPdfFile(f);
+    setEvaluation(null);
+    setPdfPath(null);
+  };
+
+  const uploadAndValidate = async () => {
+    if (!pdfFile || !user || !nextMilestone) return;
+    try {
+      setUploading(true);
+      const path = `${user.id}/${goal.id}/${Date.now()}-${pdfFile.name}`;
+      const { error: upErr } = await supabase.storage.from("checkin-pdfs").upload(path, pdfFile, {
+        contentType: "application/pdf",
+        upsert: false,
+      });
+      if (upErr) throw upErr;
+      setPdfPath(path);
+      const result = await validate.mutateAsync({
+        pdfPath: path,
+        deliverable: nextMilestone.deliverable,
+        goalTitle: goal.title,
+        milestoneTitle: nextMilestone.title,
+      });
+      setEvaluation(result);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Validation failed");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = () => {
+    const milestoneSatisfied = !!evaluation && (evaluation.meets_expectations || override);
     createCheckIn.mutate(
       {
         goal_id: goal.id,
         notes: notes.trim() || null,
         progress_value: progress[0],
         mood,
+        milestone_id: nextMilestone?.id ?? null,
+        pdf_url: pdfPath,
+        deliverable_score: evaluation?.score ?? null,
+        ai_feedback: evaluation?.feedback ?? null,
+        user_override: override,
       },
       {
         onSuccess: () => {
+          if (nextMilestone && milestoneSatisfied) {
+            toggleMilestone.mutate({ id: nextMilestone.id, completed: true, goal_id: goal.id });
+          }
           setNotes("");
           setMood(null);
+          setPdfFile(null);
+          setPdfPath(null);
+          setEvaluation(null);
+          setOverride(false);
           onClose();
         },
       }
@@ -75,6 +146,86 @@ const CheckInDialog = ({ open, onClose, goal }: CheckInDialogProps) => {
             <p className="text-sm text-muted-foreground">
               How's your progress on <span className="text-primary font-medium">{goal.title}</span>?
             </p>
+
+            {/* Milestone deliverable + PDF upload */}
+            {nextMilestone ? (
+              <div className="rounded-xl border border-border p-3 space-y-3 bg-background/40">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                    Current Milestone
+                  </p>
+                  <p className="text-sm font-semibold">{nextMilestone.title}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{nextMilestone.deliverable}</p>
+                </div>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  onChange={onPickFile}
+                />
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex-1"
+                  >
+                    <FileUp size={14} className="mr-1" />
+                    {pdfFile ? "Change PDF" : "Choose PDF"}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={uploadAndValidate}
+                    disabled={!pdfFile || uploading || validate.isPending}
+                    className="gradient-mint text-primary-foreground"
+                  >
+                    {uploading || validate.isPending ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Sparkles size={14} className="mr-1" />
+                    )}
+                    Validate
+                  </Button>
+                </div>
+                {pdfFile && (
+                  <p className="text-[10px] text-muted-foreground truncate">📄 {pdfFile.name}</p>
+                )}
+
+                {evaluation && (
+                  <div
+                    className={`rounded-lg p-3 text-xs space-y-1 border ${
+                      evaluation.meets_expectations
+                        ? "border-primary/40 bg-primary/10"
+                        : "border-amber-500/40 bg-amber-500/10"
+                    }`}
+                  >
+                    <p className="font-semibold">
+                      AI Score: {evaluation.score}/100 —{" "}
+                      {evaluation.meets_expectations ? "Meets deliverable ✓" : "Falls short"}
+                    </p>
+                    <p className="text-muted-foreground">{evaluation.feedback}</p>
+                    {!evaluation.meets_expectations && (
+                      <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={override}
+                          onChange={(e) => setOverride(e.target.checked)}
+                        />
+                        <span>Submit anyway (override)</span>
+                      </label>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">
+                No active milestone. Add deliverables in the Roadmap to enable PDF check-ins.
+              </div>
+            )}
 
             {/* Progress Slider */}
             <div>
