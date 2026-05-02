@@ -204,6 +204,8 @@ export const useToggleStep = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["goal_steps", data.goal_id] });
+      queryClient.invalidateQueries({ queryKey: ["all_active_goal_steps"] });
+      queryClient.invalidateQueries({ queryKey: ["goals"] });
     },
     onError: (err: Error) => toast.error(err.message),
   });
