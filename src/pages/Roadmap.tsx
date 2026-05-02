@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import MilestonesSection from "@/components/MilestonesSection";
 
 const GoalStepsSection = ({ goal }: { goal: Goal }) => {
   const { data: steps, isLoading } = useGoalSteps(goal.id);
@@ -174,6 +175,10 @@ const GoalStepsSection = ({ goal }: { goal: Goal }) => {
                   )}
                 </div>
               )}
+
+              <div className="pt-3">
+                <MilestonesSection goal={goal} />
+              </div>
             </div>
           </motion.div>
         )}
