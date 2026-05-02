@@ -16,31 +16,46 @@ export type Database = {
     Tables: {
       check_ins: {
         Row: {
+          ai_feedback: string | null
           created_at: string
+          deliverable_score: number | null
           goal_id: string
           id: string
+          milestone_id: string | null
           mood: number | null
           notes: string | null
+          pdf_url: string | null
           progress_value: number
           user_id: string
+          user_override: boolean
         }
         Insert: {
+          ai_feedback?: string | null
           created_at?: string
+          deliverable_score?: number | null
           goal_id: string
           id?: string
+          milestone_id?: string | null
           mood?: number | null
           notes?: string | null
+          pdf_url?: string | null
           progress_value: number
           user_id: string
+          user_override?: boolean
         }
         Update: {
+          ai_feedback?: string | null
           created_at?: string
+          deliverable_score?: number | null
           goal_id?: string
           id?: string
+          milestone_id?: string | null
           mood?: number | null
           notes?: string | null
+          pdf_url?: string | null
           progress_value?: number
           user_id?: string
+          user_override?: boolean
         }
         Relationships: [
           {
@@ -151,6 +166,48 @@ export type Database = {
           resolved_at?: string | null
           start_date?: string
           time_of_day?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      goal_milestones: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          deliverable: string
+          due_date: string | null
+          goal_id: string
+          id: string
+          period_index: number
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          deliverable: string
+          due_date?: string | null
+          goal_id: string
+          id?: string
+          period_index?: number
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          deliverable?: string
+          due_date?: string | null
+          goal_id?: string
+          id?: string
+          period_index?: number
           title?: string
           updated_at?: string
           user_id?: string
