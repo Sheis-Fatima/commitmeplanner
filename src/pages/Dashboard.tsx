@@ -11,6 +11,8 @@ import CreateGoalDialog from "@/components/CreateGoalDialog";
 import CheckInDialog from "@/components/CheckInDialog";
 import CommitmentDialog from "@/components/CommitmentDialog";
 import QuickAdjustDialog from "@/components/QuickAdjustDialog";
+import WeeklyCapacityCard from "@/components/WeeklyCapacityCard";
+import SuggestedSchedule from "@/components/SuggestedSchedule";
 import type { Goal } from "@/hooks/useGoals";
 
 const fadeUp = {
@@ -89,6 +91,9 @@ const Dashboard = () => {
             </button>
           </motion.div>
         )}
+
+        {/* Weekly capacity */}
+        <WeeklyCapacityCard />
 
         {/* Active Goals */}
         {isLoading ? (
@@ -221,6 +226,9 @@ const Dashboard = () => {
             </div>
           )}
         </motion.div>
+
+        {/* Suggested Schedule */}
+        <SuggestedSchedule />
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 gap-3">
