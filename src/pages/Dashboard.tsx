@@ -13,6 +13,7 @@ import CommitmentDialog from "@/components/CommitmentDialog";
 import QuickAdjustDialog from "@/components/QuickAdjustDialog";
 import WeeklyCapacityCard from "@/components/WeeklyCapacityCard";
 import SuggestedSchedule from "@/components/SuggestedSchedule";
+import WeeklyCheckInCard from "@/components/WeeklyCheckInCard";
 import type { Goal } from "@/hooks/useGoals";
 
 const fadeUp = {
@@ -229,6 +230,9 @@ const Dashboard = () => {
 
         {/* Suggested Schedule */}
         <SuggestedSchedule />
+
+        {/* Weekly Check-In */}
+        <WeeklyCheckInCard />
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 gap-3">

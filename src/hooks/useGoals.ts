@@ -204,6 +204,29 @@ export const useToggleStep = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["goal_steps", data.goal_id] });
+      queryClient.invalidateQueries({ queryKey: ["all_active_goal_steps"] });
+      queryClient.invalidateQueries({ queryKey: ["goals"] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+};
+
+export const useSkipStep = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id }: { id: string }) => {
+      // Push step to end of queue so the allocator picks other steps first
+      const { error } = await supabase
+        .from("goal_steps")
+        .update({ step_order: 9999 })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["all_active_goal_steps"] });
+      queryClient.invalidateQueries({ queryKey: ["goal_steps"] });
+      toast.success("Skipped — re-allocating");
     },
     onError: (err: Error) => toast.error(err.message),
   });
