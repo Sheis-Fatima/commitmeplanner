@@ -25,6 +25,33 @@ export const useGoals = () => {
   });
 };
 
+export const useAllActiveGoalSteps = () => {
+  const { user, isReady } = useAuthReady();
+
+  return useQuery({
+    queryKey: ["all_active_goal_steps", user?.id],
+    queryFn: async () => {
+      const { data: goals, error: gErr } = await supabase
+        .from("goals")
+        .select("id, title, status")
+        .eq("status", "active");
+      if (gErr) throw gErr;
+      const goalIds = (goals ?? []).map((g) => g.id);
+      if (goalIds.length === 0) return [] as Array<GoalStep & { goal_title: string }>;
+      const { data: steps, error: sErr } = await supabase
+        .from("goal_steps")
+        .select("*")
+        .in("goal_id", goalIds)
+        .eq("completed", false)
+        .order("step_order", { ascending: true });
+      if (sErr) throw sErr;
+      const goalMap = new Map((goals ?? []).map((g) => [g.id, g.title]));
+      return (steps ?? []).map((s) => ({ ...s, goal_title: goalMap.get(s.goal_id) ?? "" }));
+    },
+    enabled: isReady && !!user,
+  });
+};
+
 export const useGoalSteps = (goalId: string | undefined) => {
   const { user, isReady } = useAuthReady();
 
