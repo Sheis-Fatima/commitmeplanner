@@ -65,9 +65,17 @@ const Dashboard = () => {
           <h2 className="font-display text-3xl font-bold mt-1">
             Welcome Back, {displayName}.
           </h2>
-          <p className="text-muted-foreground mt-1">
-            You have <span className="text-primary font-medium">{activeGoals.length} active goal{activeGoals.length !== 1 ? "s" : ""}</span>
-          </p>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <p className="text-muted-foreground">
+              You have <span className="text-primary font-medium">{activeGoals.length} active goal{activeGoals.length !== 1 ? "s" : ""}</span>
+            </p>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg gradient-mint text-primary-foreground text-xs font-semibold shadow-mint shrink-0"
+            >
+              <Plus size={14} /> New Goal
+            </button>
+          </div>
         </motion.div>
 
         {/* Emergency Alert */}
