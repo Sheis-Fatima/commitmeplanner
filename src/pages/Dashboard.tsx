@@ -236,11 +236,8 @@ const Dashboard = () => {
           )}
         </motion.div>
 
-        {/* Suggested Schedule */}
-        <SuggestedSchedule />
-
-        {/* Weekly Check-In */}
-        <WeeklyCheckInCard />
+        {/* Today's confirmed plan */}
+        <TodaysPlan />
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 gap-3">
