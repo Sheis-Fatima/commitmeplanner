@@ -152,6 +152,9 @@ const Dashboard = () => {
                 >
                   <MessageSquare size={14} /> Check In
                 </button>
+                <div className="mt-3 pt-3 border-t border-border">
+                  <GoalAttachments goalId={goal.id} />
+                </div>
               </motion.div>
             ))}
           </div>
