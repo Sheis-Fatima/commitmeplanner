@@ -8,6 +8,7 @@ import { useEmergencyCommitments, useResolveEmergency } from "@/hooks/useEmergen
 import CreateGoalDialog from "@/components/CreateGoalDialog";
 import CheckInDialog from "@/components/CheckInDialog";
 import QuickAdjustDialog from "@/components/QuickAdjustDialog";
+import WeekCalendar from "@/components/WeekCalendar";
 import type { Goal } from "@/hooks/useGoals";
 import {
   DropdownMenu,
@@ -38,6 +39,12 @@ const Planner = () => {
     <AppShell>
       <AppHeader />
       <div className="px-5 space-y-5 pt-2">
+        {/* Week Calendar */}
+        <div>
+          <h2 className="font-display text-2xl font-bold mb-3">This Week</h2>
+          <WeekCalendar />
+        </div>
+
         {/* Active Emergencies Banner */}
         {activeEmergencies.map((em) => (
           <motion.div
