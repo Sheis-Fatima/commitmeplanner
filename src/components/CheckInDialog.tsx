@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, MessageSquare, Smile, Meh, Frown, Heart, Star, FileUp, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Slider } from "@/components/ui/slider";
 import { useCreateCheckIn } from "@/hooks/useGoals";
 import type { Goal } from "@/hooks/useGoals";
 import { useMilestones, useToggleMilestone, useValidateCheckInPdf } from "@/hooks/useMilestones";
@@ -15,6 +14,7 @@ interface CheckInDialogProps {
   open: boolean;
   onClose: () => void;
   goal: Goal;
+  milestoneId?: string | null;
 }
 
 const moods = [
@@ -25,9 +25,8 @@ const moods = [
   { value: 5, icon: Star, label: "Amazing" },
 ];
 
-const CheckInDialog = ({ open, onClose, goal }: CheckInDialogProps) => {
+const CheckInDialog = ({ open, onClose, goal, milestoneId }: CheckInDialogProps) => {
   const [notes, setNotes] = useState("");
-  const [progress, setProgress] = useState([goal.progress]);
   const [mood, setMood] = useState<number | null>(null);
   const createCheckIn = useCreateCheckIn();
   const { user } = useAuth();
@@ -36,7 +35,10 @@ const CheckInDialog = ({ open, onClose, goal }: CheckInDialogProps) => {
   const toggleMilestone = useToggleMilestone();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const nextMilestone = (milestones || []).find((m) => !m.completed) || null;
+  const nextMilestone =
+    (milestones || []).find((m) => m.id === milestoneId) ||
+    (milestones || []).find((m) => !m.completed) ||
+    null;
 
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfPath, setPdfPath] = useState<string | null>(null);
@@ -87,11 +89,17 @@ const CheckInDialog = ({ open, onClose, goal }: CheckInDialogProps) => {
 
   const handleSubmit = () => {
     const milestoneSatisfied = !!evaluation && (evaluation.meets_expectations || override);
+    const totalMs = milestones?.length || 0;
+    const completedMs = (milestones || []).filter((m) => m.completed).length;
+    const willComplete = nextMilestone && milestoneSatisfied ? 1 : 0;
+    const derivedProgress = totalMs > 0
+      ? Math.round(((completedMs + willComplete) / totalMs) * 100)
+      : goal.progress;
     createCheckIn.mutate(
       {
         goal_id: goal.id,
         notes: notes.trim() || null,
-        progress_value: progress[0],
+        progress_value: derivedProgress,
         mood,
         milestone_id: nextMilestone?.id ?? null,
         pdf_url: pdfPath,
@@ -226,21 +234,6 @@ const CheckInDialog = ({ open, onClose, goal }: CheckInDialogProps) => {
                 No active milestone. Add deliverables in the Roadmap to enable PDF check-ins.
               </div>
             )}
-
-            {/* Progress Slider */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Progress</p>
-                <span className="text-primary font-bold text-sm">{progress[0]}%</span>
-              </div>
-              <Slider
-                value={progress}
-                onValueChange={setProgress}
-                max={100}
-                step={5}
-                className="w-full"
-              />
-            </div>
 
             {/* Mood */}
             <div>
