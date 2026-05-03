@@ -36,7 +36,7 @@ const WeeklyCapacityCard = () => {
       <div className="grid grid-cols-3 gap-2 mt-3 text-center">
         <div>
           <p className="font-display font-bold text-lg">{fmt(summary.committedHours)}</p>
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Committed</p>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Engaged</p>
         </div>
         <div>
           <p className="font-display font-bold text-lg text-primary">{fmt(summary.allocatedHours)}</p>
