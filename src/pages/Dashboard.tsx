@@ -12,8 +12,8 @@ import CheckInDialog from "@/components/CheckInDialog";
 import CommitmentDialog from "@/components/CommitmentDialog";
 import QuickAdjustDialog from "@/components/QuickAdjustDialog";
 import WeeklyCapacityCard from "@/components/WeeklyCapacityCard";
-import SuggestedSchedule from "@/components/SuggestedSchedule";
-import WeeklyCheckInCard from "@/components/WeeklyCheckInCard";
+import TodaysPlan from "@/components/TodaysPlan";
+import GoalAttachments from "@/components/GoalAttachments";
 import type { Goal } from "@/hooks/useGoals";
 
 const fadeUp = {
