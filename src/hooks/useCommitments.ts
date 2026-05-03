@@ -62,6 +62,7 @@ export const useCreateCommitment = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["commitments"] });
+      queryClient.invalidateQueries({ queryKey: ["all_active_goal_steps"] });
       toast.success("Commitment added!");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -91,6 +92,7 @@ export const useUpdateCommitment = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["commitments"] });
+      queryClient.invalidateQueries({ queryKey: ["all_active_goal_steps"] });
       toast.success("Commitment updated!");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -110,6 +112,7 @@ export const useResolveCommitment = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["commitments"] });
+      queryClient.invalidateQueries({ queryKey: ["all_active_goal_steps"] });
       toast.success("Commitment resolved!");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -129,6 +132,7 @@ export const useDeleteCommitment = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["commitments"] });
+      queryClient.invalidateQueries({ queryKey: ["all_active_goal_steps"] });
       toast.success("Commitment deleted!");
     },
     onError: (err: Error) => toast.error(err.message),
