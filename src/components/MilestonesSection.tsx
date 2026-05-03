@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Loader2, Plus, Trash2, Save, CheckCircle2, Circle, Flag } from "lucide-react";
+import { Sparkles, Loader2, Plus, Trash2, Save, CheckCircle2, Circle, Flag, MessageSquare, SkipForward } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,9 @@ import {
   useToggleMilestone,
 } from "@/hooks/useMilestones";
 import type { Goal } from "@/hooks/useGoals";
+import { useSkipStep } from "@/hooks/useGoals";
+import GoalAttachments from "@/components/GoalAttachments";
+import CheckInDialog from "@/components/CheckInDialog";
 import { toast } from "sonner";
 
 interface DraftMilestone {
@@ -27,6 +30,8 @@ const MilestonesSection = ({ goal }: { goal: Goal }) => {
   const generate = useGenerateMilestones();
   const save = useSaveMilestones();
   const toggle = useToggleMilestone();
+  const skip = useSkipStep();
+  const [checkInMilestoneId, setCheckInMilestoneId] = useState<string | null>(null);
 
   const [drafts, setDrafts] = useState<DraftMilestone[]>([]);
   const [editing, setEditing] = useState(false);
@@ -173,29 +178,61 @@ const MilestonesSection = ({ goal }: { goal: Goal }) => {
               key={m.id}
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-start gap-2 rounded-lg border border-border p-2"
+              className="rounded-lg border border-border p-2 space-y-2"
             >
-              <button
-                onClick={() => toggle.mutate({ id: m.id, completed: !m.completed, goal_id: m.goal_id })}
-                className="mt-0.5 text-primary"
-              >
-                {m.completed ? <CheckCircle2 size={18} /> : <Circle size={18} className="text-muted-foreground" />}
-              </button>
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium ${m.completed ? "line-through text-muted-foreground" : ""}`}>
-                  {m.title}
-                </p>
-                <p className="text-xs text-muted-foreground">{m.deliverable}</p>
-                {m.due_date && (
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">
-                    Due {new Date(m.due_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+              <div className="flex items-start gap-2">
+                <button
+                  onClick={() => toggle.mutate({ id: m.id, completed: !m.completed, goal_id: m.goal_id })}
+                  className="mt-0.5 text-primary"
+                >
+                  {m.completed ? <CheckCircle2 size={18} /> : <Circle size={18} className="text-muted-foreground" />}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-medium ${m.completed ? "line-through text-muted-foreground" : ""}`}>
+                    {m.title}
                   </p>
-                )}
+                  <p className="text-xs text-muted-foreground">{m.deliverable}</p>
+                  {m.due_date && (
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">
+                      Due {new Date(m.due_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </p>
+                  )}
+                </div>
+              </div>
+              {!m.completed && (
+                <div className="flex items-center gap-2 pl-6">
+                  <button
+                    onClick={() => setCheckInMilestoneId(m.id)}
+                    className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1"
+                  >
+                    <MessageSquare size={11} /> Check In
+                  </button>
+                  <button
+                    onClick={() => {
+                      skip.mutate({ id: m.id });
+                      toast.message("Marked as skipped — reallocating");
+                    }}
+                    className="text-[11px] font-semibold text-muted-foreground hover:text-foreground flex items-center gap-1"
+                  >
+                    <SkipForward size={11} /> Skip
+                  </button>
+                </div>
+              )}
+              <div className="pl-6">
+                <GoalAttachments goalId={goal.id} milestoneId={m.id} compact />
               </div>
             </motion.div>
           ))}
         </div>
       ) : null}
+      {checkInMilestoneId && (
+        <CheckInDialog
+          open={!!checkInMilestoneId}
+          onClose={() => setCheckInMilestoneId(null)}
+          goal={goal}
+          milestoneId={checkInMilestoneId}
+        />
+      )}
     </div>
   );
 };
