@@ -6,6 +6,7 @@ import {
   allocateTasks,
   summarize,
   getWeekStart,
+  stripConflicts,
   type AllocatableTask,
 } from "@/lib/timeAllocation";
 
@@ -22,7 +23,8 @@ export const useTimeAllocation = () => {
       goal_id: s.goal_id,
       title: `${(s as any).goal_title ? (s as any).goal_title + ": " : ""}${s.title}`,
     }));
-    const allocations = allocateTasks(tasks, freeSlots);
+    const raw = allocateTasks(tasks, freeSlots);
+    const allocations = stripConflicts(raw, cs, weekStart);
     const summary = summarize(cs, weekStart, allocations);
     return { weekStart, freeSlots, allocations, summary };
   }, [commitments, steps]);

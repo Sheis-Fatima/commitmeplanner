@@ -12,8 +12,8 @@ import CheckInDialog from "@/components/CheckInDialog";
 import CommitmentDialog from "@/components/CommitmentDialog";
 import QuickAdjustDialog from "@/components/QuickAdjustDialog";
 import WeeklyCapacityCard from "@/components/WeeklyCapacityCard";
-import SuggestedSchedule from "@/components/SuggestedSchedule";
-import WeeklyCheckInCard from "@/components/WeeklyCheckInCard";
+import TodaysPlan from "@/components/TodaysPlan";
+import GoalAttachments from "@/components/GoalAttachments";
 import type { Goal } from "@/hooks/useGoals";
 
 const fadeUp = {
@@ -65,9 +65,17 @@ const Dashboard = () => {
           <h2 className="font-display text-3xl font-bold mt-1">
             Welcome Back, {displayName}.
           </h2>
-          <p className="text-muted-foreground mt-1">
-            You have <span className="text-primary font-medium">{activeGoals.length} active goal{activeGoals.length !== 1 ? "s" : ""}</span>
-          </p>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <p className="text-muted-foreground">
+              You have <span className="text-primary font-medium">{activeGoals.length} active goal{activeGoals.length !== 1 ? "s" : ""}</span>
+            </p>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg gradient-mint text-primary-foreground text-xs font-semibold shadow-mint shrink-0"
+            >
+              <Plus size={14} /> New Goal
+            </button>
+          </div>
         </motion.div>
 
         {/* Emergency Alert */}
@@ -144,6 +152,9 @@ const Dashboard = () => {
                 >
                   <MessageSquare size={14} /> Check In
                 </button>
+                <div className="mt-3 pt-3 border-t border-border">
+                  <GoalAttachments goalId={goal.id} />
+                </div>
               </motion.div>
             ))}
           </div>
@@ -228,11 +239,8 @@ const Dashboard = () => {
           )}
         </motion.div>
 
-        {/* Suggested Schedule */}
-        <SuggestedSchedule />
-
-        {/* Weekly Check-In */}
-        <WeeklyCheckInCard />
+        {/* Today's confirmed plan */}
+        <TodaysPlan />
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 gap-3">

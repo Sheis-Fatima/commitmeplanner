@@ -48,8 +48,8 @@ function commitmentRunsOnDay(c: Commitment, dayIndex: number): boolean {
   if (f === "weekends") return dayIndex === 0 || dayIndex === 6;
   if (f === "weekly") return dayIndex === 1; // default to Monday
   if (f === "custom") {
-    const days = (c.custom_days || []).map((d) => d.toLowerCase());
-    return days.includes(DAY_NAMES[dayIndex]);
+    const days = (c.custom_days || []).map((d) => d.toLowerCase().slice(0, 3));
+    return days.includes(DAY_NAMES[dayIndex].slice(0, 3));
   }
   return false;
 }
@@ -69,6 +69,7 @@ export function expandCommitmentsToWeek(
       if (!commitmentRunsOnDay(c, dayIndex)) continue;
       const s = c.start_time || c.time_of_day;
       const e = c.end_time || (s ? toTime(toMin(s) + 60) : null);
+      // Skip commitments without any time info — they don't block specific slots.
       if (!s || !e) continue;
       out.push({ date: dateStr, dayIndex, start: toMin(s), end: toMin(e), title: c.title });
     }
@@ -168,6 +169,22 @@ export function allocateTasks(
     }
   }
   return allocations;
+}
+
+// Defensive guard: drop any allocation that overlaps a commitment block.
+export function stripConflicts(
+  allocations: TaskAllocation[],
+  commitments: Commitment[],
+  weekStart: Date,
+): TaskAllocation[] {
+  const expanded = expandCommitmentsToWeek(commitments, weekStart);
+  return allocations.filter((a) => {
+    const aS = toMin(a.start);
+    const aE = toMin(a.end);
+    return !expanded.some(
+      (b) => b.date === a.date && aS < b.end && aE > b.start,
+    );
+  });
 }
 
 export function summarize(
