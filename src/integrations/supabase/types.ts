@@ -172,8 +172,42 @@ export type Database = {
         }
         Relationships: []
       }
+      goal_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          goal_id: string
+          id: string
+          milestone_id: string | null
+          mime_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          goal_id: string
+          id?: string
+          milestone_id?: string | null
+          mime_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          goal_id?: string
+          id?: string
+          milestone_id?: string | null
+          mime_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       goal_milestones: {
         Row: {
+          attachment_url: string | null
           completed: boolean
           completed_at: string | null
           created_at: string
@@ -182,11 +216,13 @@ export type Database = {
           goal_id: string
           id: string
           period_index: number
+          status: string
           title: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          attachment_url?: string | null
           completed?: boolean
           completed_at?: string | null
           created_at?: string
@@ -195,11 +231,13 @@ export type Database = {
           goal_id: string
           id?: string
           period_index?: number
+          status?: string
           title: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          attachment_url?: string | null
           completed?: boolean
           completed_at?: string | null
           created_at?: string
@@ -208,6 +246,7 @@ export type Database = {
           goal_id?: string
           id?: string
           period_index?: number
+          status?: string
           title?: string
           updated_at?: string
           user_id?: string
