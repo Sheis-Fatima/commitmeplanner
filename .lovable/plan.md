@@ -1,115 +1,55 @@
-# Productivity MVP — Fixes & Refinement Plan
+## Goals
+1. Remove the attachments UI from the Dashboard goal cards and from the Roadmap milestone list.
+2. Make the "New Goal" form fully responsive (especially on small viewports) with an always-visible primary CTA.
+3. Change the floating + button (FAB) on the Dashboard so it opens a chooser ("New Goal" or "New Commitment") instead of jumping straight into the goal form.
 
-A focused pass across Dashboard, Planner, Roadmap, and the Check-in flow to address the issues you listed. No core architecture changes — everything reuses the existing time-allocation engine, milestone, and check-in tables.
+## Changes
 
----
+### 1. Remove attachments from Dashboard (`src/pages/Dashboard.tsx`)
+- Remove the `import GoalAttachments from "@/components/GoalAttachments"` line.
+- Remove the bottom block on each active goal card:
+  ```
+  <div className="mt-3 pt-3 border-t border-border">
+    <GoalAttachments goalId={goal.id} />
+  </div>
+  ```
 
-## 1. Responsiveness & "Create Goal" visibility
+### 2. Remove attachments from Roadmap milestones (`src/components/MilestonesSection.tsx`)
+- Remove the `import GoalAttachments` line and the per-milestone `<GoalAttachments goalId={goal.id} milestoneId={m.id} compact />` block.
+- The PDF upload inside `CheckInDialog` is kept untouched.
+- The `GoalAttachments` component, `useAttachments` hook, and `goal_attachments` table are left in place (dormant, not rendered) so nothing else breaks.
 
-- Wrap all page content in a responsive container (`max-w-3xl` mobile, `max-w-6xl` desktop) inside `AppShell` so layouts breathe on tablet/desktop.
-- Make the floating **Create Goal** FAB visible on every primary route (Dashboard, Planner, Roadmap, Insights), not just Dashboard/Planner.
-- Add a secondary inline **+ New Goal** button in the Dashboard header so the CTA is reachable without scrolling.
-- Audit grids: `grid-cols-1 md:grid-cols-2 lg:grid-cols-3` for goal cards, milestone lists, and stats row.
+### 3. Responsive Create Goal dialog with sticky CTA (`src/components/CreateGoalDialog.tsx`)
+At small viewports (e.g. 673×528) the dialog currently overflows and the "Create Goal" button gets pushed off-screen with no scroll affordance.
 
-## 2. Dashboard time bar — instant, accurate, real-time
+Refactor the dialog panel into a 3-region flex column constrained to viewport height, with a scrollable middle and a sticky footer:
+- Outer panel: `w-full max-w-lg sm:rounded-2xl rounded-t-2xl bg-card border border-border shadow-card flex flex-col max-h-[90vh] sm:max-h-[85vh]`
+- Header (title + X): `flex items-center justify-between p-4 sm:p-6 border-b border-border shrink-0`
+- Body (all form fields): wrap in `<div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">` so long content scrolls.
+- Footer with sticky CTA: new `<div className="p-4 sm:p-6 border-t border-border shrink-0 flex gap-2">` containing:
+  - Secondary "Cancel" (`variant="outline"`, `flex-1 sm:flex-none`) calling `onClose`.
+  - Existing "Create Goal" submit button: `flex-1 h-12 rounded-xl gradient-mint text-primary-foreground font-semibold text-base shadow-mint hover:opacity-90`.
+- Keep current motion + `stopPropagation` on inner panel.
 
-- `WeeklyCapacityCard` already reads from `useTimeAllocation`, which depends on the `commitments` query. The issue is the cache is invalidated only on mutation success. Fix:
-  - In `useCreateCommitment` / `useUpdateCommitment` / `useDeleteCommitment` / `useResolveCommitment`: add **optimistic updates** so the bar moves the moment the user saves.
-  - Also invalidate `["all_active_goal_steps"]` so reallocation re-runs.
-- Re-label the bar segments clearly: **Total · Engaged · Free**, with hours and % shown inline.
+Result: form scrolls within the dialog and the "Create Goal" CTA is always visible at the bottom.
 
-## 3. Planner — calendar-style schedule view
+### 4. FAB chooser: New Goal vs New Commitment (`src/pages/Dashboard.tsx`)
+Replace the current behavior where the floating + button immediately opens `CreateGoalDialog`.
 
-Replace the current "list of goals" Planner page with a true week calendar:
+- New local state: `const [showAddChooser, setShowAddChooser] = useState(false);`
+- FAB `onClick` becomes `() => setShowAddChooser(true)`.
+- Build a small bottom-sheet style chooser inline (matches the existing dialog pattern in `CreateGoalDialog` — `framer-motion` overlay + panel sliding from the bottom), containing two large tappable cards:
+  - **New Goal** (Target icon, mint gradient accent) → closes chooser, opens `CreateGoalDialog` (`setShowCreate(true)`).
+  - **New Commitment** (Briefcase icon) → closes chooser, opens `CommitmentDialog` (`setEditingCommitment(null); setShowAddCommitment(true)`).
+- Each card: `w-full rounded-xl border border-border bg-card p-4 flex items-center gap-3 hover:border-primary/50` with title + one-line description ("Track a new outcome" / "Add work, classes, or recurring tasks").
+- Include a header "What do you want to add?" and an X close button.
+- Mobile-first: `rounded-t-2xl sm:rounded-2xl`, `max-w-md`, sticks to bottom on mobile, centered on desktop — same pattern as `CreateGoalDialog`.
+- Dismiss on overlay click or X.
 
-```text
-        Mon   Tue   Wed   Thu   Fri   Sat   Sun
- 08:00 ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┐
- 09:00 │Work │Work │Work │     │Work │     │     │
- ...   │     │     │     │     │     │     │     │
- 18:00 │Goal │     │Goal │Goal │     │Goal │     │
- 22:00 └─────┴─────┴─────┴─────┴─────┴─────┴─────┘
-```
+The top-right inline "+ New Goal" button in the greeting row keeps its current behavior (direct goal creation) for users who want the shortcut.
 
-- New component `WeekCalendar.tsx`: 7 columns × hourly rows, current week, with a "today" highlight and Prev/Next week toggle.
-- Render two layers: **commitments** (amber) and **confirmed goal blocks** (mint).
-- Goal-management list stays accessible but moves to the Roadmap page (where steps already live), eliminating duplication.
-
-## 4. Scheduling conflict fix
-
-The current allocator already uses `computeFreeSlots` to remove commitment time, but two bugs cause overlaps:
-1. Commitments without `start_time`/`end_time` (only `time_of_day`) silently fallback to a 60-min block but day-of-week filtering can miss `weekly` items not on Mondays.
-2. `step_order: 9999` (used by skip) creates ties that re-place skipped items in the same slot.
-
-Fixes in `src/lib/timeAllocation.ts`:
-- Treat any commitment lacking both `start_time` and `end_time` as a full-day block-out for that day (or skip it entirely — opt for "skip and warn"), never as a default 08:00 slot.
-- Add a final pass `assertNoConflicts(allocations, expandedCommitments)` that throws/strips any overlapping allocation (defensive guard).
-- Honor `weekly` and `custom` frequencies properly and clamp to user window (default 08:00–22:00, configurable later).
-
-## 5. Check-in system
-
-### 5a. Remove progress bar from check-in dialog
-- Drop the `Slider` and `progress` state from `CheckInDialog.tsx`.
-- Derive the goal's `progress` from milestone completion ratio (completed milestones / total) inside `useCreateCheckIn`. Simpler, no manual slider.
-
-### 5b. Dashboard-level attachments (PDF + image)
-- Extend the `checkin-pdfs` storage bucket to accept images too (rename usage to `checkin-attachments`, allowed MIME: `application/pdf`, `image/png`, `image/jpeg`).
-- Add an "Attachments" section on each Dashboard goal card showing recent uploads (thumbnail for images, file icon for PDFs) with a quick **+ Attach** button that links the upload to the goal's *next milestone*.
-
-## 6. Dashboard shows confirmed plan, not suggestions
-
-- Rename `SuggestedSchedule` → `TodaysPlan`. Show only **today + tomorrow** of the *committed* allocation (the engine's output is treated as confirmed once commitments are stable).
-- Remove the wording "Suggested" from the UI; the bar and list now reflect the actual plan.
-- Move the live re-allocation preview (multi-day) into the Planner calendar.
-
-## 7. Weekly check-in moves into the Roadmap
-
-- Delete `WeeklyCheckInCard` from Dashboard.
-- Inside `MilestonesSection` (Roadmap), each milestone gets a **Check In** button that opens the existing `CheckInDialog` pre-bound to that milestone.
-- If user **skips** or AI score < threshold and they don't override:
-  - Mark milestone as "needs rework" (new column `status` on `goal_milestones`: `pending | done | skipped`)
-  - Trigger reallocation: invalidate `all_active_goal_steps` + push the related goal step to end of queue (re-uses `useSkipStep` logic).
-
-## 8. Roadmap milestone enhancements
-
-- Add per-milestone **deliverable attachment** (PDF/image upload) directly in the Roadmap card — not only inside the check-in flow.
-- Add a **Check In** button per milestone (links to dialog with milestone + attachment pre-filled).
-- Status pill on each milestone: Pending · Submitted · Verified · Skipped.
-
-## 9. System consistency
-
-- Single source of truth: `useTimeAllocation` powers Dashboard's `TodaysPlan`, the Planner calendar, and the Insights "time spent" chart — no duplicated allocation logic.
-- All mutations (commitments, steps, milestones, check-ins) invalidate the same set of queries: `["commitments"]`, `["all_active_goal_steps"]`, `["goals"]`, `["milestones", goalId]`.
-- Insights page reads from the same hooks; verify counts match Dashboard.
-
----
-
-## Technical Summary
-
-**Files to edit**
-- `src/lib/timeAllocation.ts` — strict conflict guard, frequency fixes
-- `src/hooks/useCommitments.ts` — optimistic updates + cross-invalidation
-- `src/hooks/useGoals.ts` — derive `progress` from milestones in `useCreateCheckIn`
-- `src/hooks/useMilestones.ts` — add `status` field handling
-- `src/components/CheckInDialog.tsx` — remove slider, accept image attachments, accept milestoneId prop
-- `src/components/WeeklyCapacityCard.tsx` — relabel segments
-- `src/components/MilestonesSection.tsx` — per-milestone attach + Check In buttons + status pill
-- `src/pages/Dashboard.tsx` — remove `WeeklyCheckInCard` and `SuggestedSchedule`, add `TodaysPlan`, attachments section, header CTA
-- `src/pages/Planner.tsx` — replace list with `WeekCalendar`
-- `src/pages/Roadmap.tsx` — surface milestone check-in flow
-
-**Files to create**
-- `src/components/TodaysPlan.tsx`
-- `src/components/WeekCalendar.tsx`
-- `src/components/GoalAttachments.tsx`
-- `src/hooks/useAttachments.ts`
-
-**DB migrations**
-- `goal_milestones`: add `status text default 'pending'` and `attachment_url text`
-- Storage: rename/extend `checkin-pdfs` policy to allow image MIME types (or keep bucket name, broaden allowed types in client)
-
-**Files to delete**
-- `src/components/WeeklyCheckInCard.tsx`
-- `src/components/SuggestedSchedule.tsx` (replaced by `TodaysPlan`)
-
-No edge function changes required; `validate-checkin-pdf` continues to be used for PDF uploads, and image uploads skip AI validation (manual mark-complete).
+## Out of scope
+- No DB migrations.
+- No removal of `goal_attachments` table/bucket/hook (kept dormant).
+- No changes to `CheckInDialog` PDF upload flow.
+- No new component file for the chooser — kept inline in `Dashboard.tsx` for simplicity (small UI, single use site).
