@@ -59,9 +59,9 @@ const CreateGoalDialog = ({ open, onClose }: CreateGoalDialogProps) => {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg rounded-t-2xl sm:rounded-2xl bg-card border border-border p-6 space-y-5 shadow-card"
+            className="w-full max-w-lg rounded-t-2xl sm:rounded-2xl bg-card border border-border shadow-card flex flex-col max-h-[90vh] sm:max-h-[85vh]"
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-border shrink-0">
               <div className="flex items-center gap-2">
                 <Target size={20} className="text-primary" />
                 <h2 className="font-display text-xl font-bold">New Goal</h2>
@@ -71,7 +71,7 @@ const CreateGoalDialog = ({ open, onClose }: CreateGoalDialogProps) => {
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
               <Input
                 placeholder="What do you want to achieve?"
                 value={title}
@@ -141,13 +141,22 @@ const CreateGoalDialog = ({ open, onClose }: CreateGoalDialogProps) => {
               </div>
             </div>
 
-            <Button
-              onClick={handleSubmit}
-              disabled={!title.trim() || createGoal.isPending}
-              className="w-full h-12 rounded-xl gradient-mint text-primary-foreground font-semibold text-base shadow-mint hover:opacity-90"
-            >
-              {createGoal.isPending ? "Creating..." : "Create Goal"}
-            </Button>
+            <div className="p-4 sm:p-6 border-t border-border shrink-0 flex gap-2">
+              <Button
+                variant="outline"
+                onClick={onClose}
+                className="h-12 rounded-xl flex-1 sm:flex-none sm:px-6"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={!title.trim() || createGoal.isPending}
+                className="flex-1 h-12 rounded-xl gradient-mint text-primary-foreground font-semibold text-base shadow-mint hover:opacity-90"
+              >
+                {createGoal.isPending ? "Creating..." : "Create Goal"}
+              </Button>
+            </div>
           </motion.div>
         </motion.div>
       )}

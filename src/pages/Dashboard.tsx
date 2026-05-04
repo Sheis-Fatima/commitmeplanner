@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronRight, Flame, Zap, Plus, Target, MessageSquare, Briefcase, CalendarX2, CheckCircle2, Pencil } from "lucide-react";
+import { ChevronRight, Flame, Zap, Plus, Target, MessageSquare, Briefcase, CalendarX2, CheckCircle2, Pencil, X } from "lucide-react";
+import { AnimatePresence } from "framer-motion";
 import AppHeader from "@/components/AppHeader";
 import AppShell from "@/components/AppShell";
 import { useGoals } from "@/hooks/useGoals";
@@ -13,7 +14,6 @@ import CommitmentDialog from "@/components/CommitmentDialog";
 import QuickAdjustDialog from "@/components/QuickAdjustDialog";
 import WeeklyCapacityCard from "@/components/WeeklyCapacityCard";
 import TodaysPlan from "@/components/TodaysPlan";
-import GoalAttachments from "@/components/GoalAttachments";
 import type { Goal } from "@/hooks/useGoals";
 
 const fadeUp = {
@@ -31,6 +31,7 @@ const Dashboard = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [showAddCommitment, setShowAddCommitment] = useState(false);
   const [showEmergency, setShowEmergency] = useState(false);
+  const [showAddChooser, setShowAddChooser] = useState(false);
   const [editingCommitment, setEditingCommitment] = useState<Commitment | null>(null);
   const [checkInGoal, setCheckInGoal] = useState<Goal | null>(null);
 
@@ -152,9 +153,6 @@ const Dashboard = () => {
                 >
                   <MessageSquare size={14} /> Check In
                 </button>
-                <div className="mt-3 pt-3 border-t border-border">
-                  <GoalAttachments goalId={goal.id} />
-                </div>
               </motion.div>
             ))}
           </div>
@@ -276,13 +274,75 @@ const Dashboard = () => {
       {/* FAB */}
       <motion.button
         whileTap={{ scale: 0.9 }}
-        onClick={() => setShowCreate(true)}
+        onClick={() => setShowAddChooser(true)}
         className="fixed bottom-24 right-6 h-14 w-14 rounded-2xl gradient-mint shadow-mint flex items-center justify-center z-40"
       >
         <Plus size={24} className="text-primary-foreground" />
       </motion.button>
 
       <CreateGoalDialog open={showCreate} onClose={() => setShowCreate(false)} />
+      <AnimatePresence>
+        {showAddChooser && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-end sm:items-center justify-center"
+            onClick={() => setShowAddChooser(false)}
+          >
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md rounded-t-2xl sm:rounded-2xl bg-card border border-border p-5 shadow-card space-y-4"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="font-display text-lg font-bold">What do you want to add?</h3>
+                <button
+                  onClick={() => setShowAddChooser(false)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    setShowAddChooser(false);
+                    setShowCreate(true);
+                  }}
+                  className="w-full text-left rounded-xl border border-border bg-card p-4 flex items-center gap-3 hover:border-primary/50 transition-colors"
+                >
+                  <div className="w-10 h-10 rounded-xl gradient-mint flex items-center justify-center shrink-0 shadow-mint">
+                    <Target size={18} className="text-primary-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm">New Goal</p>
+                    <p className="text-xs text-muted-foreground">Track a new outcome you want to achieve</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAddChooser(false);
+                    setEditingCommitment(null);
+                    setShowAddCommitment(true);
+                  }}
+                  className="w-full text-left rounded-xl border border-border bg-card p-4 flex items-center gap-3 hover:border-primary/50 transition-colors"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <Briefcase size={18} className="text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm">New Commitment</p>
+                    <p className="text-xs text-muted-foreground">Add work, classes, or recurring tasks</p>
+                  </div>
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <CommitmentDialog
         open={showAddCommitment}
         onClose={() => { setShowAddCommitment(false); setEditingCommitment(null); }}
