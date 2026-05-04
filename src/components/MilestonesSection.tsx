@@ -12,7 +12,6 @@ import {
 } from "@/hooks/useMilestones";
 import type { Goal } from "@/hooks/useGoals";
 import { useSkipStep } from "@/hooks/useGoals";
-import GoalAttachments from "@/components/GoalAttachments";
 import CheckInDialog from "@/components/CheckInDialog";
 import { toast } from "sonner";
 
@@ -218,9 +217,6 @@ const MilestonesSection = ({ goal }: { goal: Goal }) => {
                   </button>
                 </div>
               )}
-              <div className="pl-6">
-                <GoalAttachments goalId={goal.id} milestoneId={m.id} compact />
-              </div>
             </motion.div>
           ))}
         </div>
