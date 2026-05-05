@@ -2,15 +2,19 @@ import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCommitments } from "@/hooks/useCommitments";
 import { useAllActiveGoalSteps } from "@/hooks/useGoals";
+import { useSleepLogs, useSleepPreferences } from "@/hooks/useSleep";
 import {
   computeFreeSlots,
   allocateTasks,
   expandCommitmentsToWeek,
   stripConflicts,
   getWeekStart,
+  sleepLogToBlocks,
+  projectSleepForWeek,
+  type SleepBlock,
 } from "@/lib/timeAllocation";
 
-const HOURS = Array.from({ length: 15 }, (_, i) => 8 + i); // 08:00 - 22:00
+const HOURS = Array.from({ length: 24 }, (_, i) => i); // 00:00 - 23:00
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const toMin = (t: string) => {
@@ -22,25 +26,46 @@ const WeekCalendar = () => {
   const [offset, setOffset] = useState(0);
   const { data: commitments } = useCommitments();
   const { data: steps } = useAllActiveGoalSteps();
+  const { data: prefs } = useSleepPreferences();
 
   const weekStart = useMemo(() => {
     const d = getWeekStart();
     d.setDate(d.getDate() + offset * 7);
     return d;
   }, [offset]);
+  const weekEnd = useMemo(() => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + 7);
+    return d;
+  }, [weekStart]);
+  const { data: sleepLogs } = useSleepLogs(
+    weekStart.toISOString().slice(0, 10),
+    weekEnd.toISOString().slice(0, 10),
+  );
 
-  const { commitmentBlocks, allocBlocks } = useMemo(() => {
+  const { commitmentBlocks, allocBlocks, sleepBlocks } = useMemo(() => {
     const cs = commitments ?? [];
     const expanded = expandCommitmentsToWeek(cs, weekStart);
-    const slots = computeFreeSlots(cs, weekStart);
+    const loggedBlocks: SleepBlock[] = [];
+    const loggedDates = new Set<string>();
+    for (const l of sleepLogs ?? []) {
+      const s = new Date(l.start_time);
+      const e = new Date(l.end_time);
+      if (e <= s) continue;
+      loggedDates.add(l.sleep_date);
+      loggedBlocks.push(...sleepLogToBlocks(s, e, "logged"));
+    }
+    const projected = projectSleepForWeek(weekStart, prefs?.typical_bedtime ?? "23:00", prefs?.typical_waketime ?? "07:00", loggedDates);
+    const allSleep = [...loggedBlocks, ...projected];
+    const slots = computeFreeSlots(cs, weekStart, allSleep);
     const tasks = (steps ?? []).map((s) => ({
       id: s.id,
       goal_id: s.goal_id,
       title: `${(s as any).goal_title ? (s as any).goal_title + ": " : ""}${s.title}`,
     }));
-    const allocs = stripConflicts(allocateTasks(tasks, slots), cs, weekStart);
-    return { commitmentBlocks: expanded, allocBlocks: allocs };
-  }, [commitments, steps, weekStart]);
+    const allocs = stripConflicts(allocateTasks(tasks, slots), cs, weekStart, allSleep);
+    return { commitmentBlocks: expanded, allocBlocks: allocs, sleepBlocks: allSleep };
+  }, [commitments, steps, weekStart, sleepLogs, prefs]);
 
   const dates = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart);
@@ -48,8 +73,8 @@ const WeekCalendar = () => {
     return d;
   });
   const today = new Date().toISOString().slice(0, 10);
-  const winStartMin = 8 * 60;
-  const winMin = HOURS.length * 60;
+  const winStartMin = 0;
+  const winMin = 24 * 60;
 
   const blockStyle = (startMin: number, endMin: number) => {
     const top = ((Math.max(startMin, winStartMin) - winStartMin) / winMin) * 100;
@@ -126,6 +151,20 @@ const WeekCalendar = () => {
                   {a.title}
                 </div>
               ))}
+              {sleepBlocks.filter((b) => b.date === iso).map((b, idx) => (
+                <div
+                  key={`s-${idx}`}
+                  className={`absolute left-0.5 right-0.5 rounded px-1 text-[9px] overflow-hidden border ${
+                    b.source === "logged"
+                      ? "bg-indigo-500/30 border-indigo-500/50 text-foreground"
+                      : "bg-indigo-500/10 border-indigo-500/30 text-muted-foreground"
+                  }`}
+                  style={blockStyle(b.start, b.end)}
+                  title={b.source === "logged" ? "Sleep (logged)" : "Sleep (planned)"}
+                >
+                  💤
+                </div>
+              ))}
             </div>
           );
         })}
@@ -134,6 +173,7 @@ const WeekCalendar = () => {
       <div className="flex items-center gap-3 mt-3 text-[10px] text-muted-foreground">
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-amber-500/50" /> Commitments</span>
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm gradient-mint" /> Goal blocks</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-indigo-500/40" /> Sleep</span>
       </div>
     </div>
   );
