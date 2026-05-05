@@ -14,6 +14,7 @@ import CommitmentDialog from "@/components/CommitmentDialog";
 import QuickAdjustDialog from "@/components/QuickAdjustDialog";
 import WeeklyCapacityCard from "@/components/WeeklyCapacityCard";
 import TodaysPlan from "@/components/TodaysPlan";
+import SleepCard from "@/components/SleepCard";
 import type { Goal } from "@/hooks/useGoals";
 
 const fadeUp = {
