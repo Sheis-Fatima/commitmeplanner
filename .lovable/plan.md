@@ -1,55 +1,100 @@
-## Goals
-1. Remove the attachments UI from the Dashboard goal cards and from the Roadmap milestone list.
-2. Make the "New Goal" form fully responsive (especially on small viewports) with an always-visible primary CTA.
-3. Change the floating + button (FAB) on the Dashboard so it opens a chooser ("New Goal" or "New Commitment") instead of jumping straight into the goal form.
+## Goal
 
-## Changes
+Replace the hardcoded 8a–10p (98h) window with a true **24h/day model** where **sleep is a first-class, user-logged time block**. Sleep is flexible in *timing* but tracked toward a 7–8h/day duration target. Tasks are never scheduled during logged or planned sleep.
 
-### 1. Remove attachments from Dashboard (`src/pages/Dashboard.tsx`)
-- Remove the `import GoalAttachments from "@/components/GoalAttachments"` line.
-- Remove the bottom block on each active goal card:
+## Data model
+
+### New table: `sleep_logs` (migration)
+```
+id           uuid pk default gen_random_uuid()
+user_id      uuid not null
+sleep_date   date not null         -- the "night of" date (date the sleep STARTED)
+start_time   timestamptz not null  -- actual bedtime
+end_time     timestamptz not null  -- actual wake time
+duration_min int generated         -- (end - start) in minutes
+quality      int null              -- optional 1–5 (future check-in field)
+source       text not null default 'manual'  -- 'manual' | 'checkin'
+created_at   timestamptz default now()
+```
+- RLS: standard `auth.uid() = user_id` for select/insert/update/delete.
+- Validation trigger (NOT a CHECK): `end_time > start_time` and duration ≤ 16h.
+- Index on `(user_id, sleep_date)`.
+
+### New table: `sleep_preferences`
+```
+user_id          uuid pk
+target_hours     numeric not null default 7.5   -- 7–8 typical
+typical_bedtime  text null    -- "23:30" (hint only, never enforced)
+typical_waketime text null    -- "07:00"
+updated_at       timestamptz default now()
+```
+RLS: owner only. Used as a **planning hint** for future nights when no log exists yet.
+
+## Scheduling logic (`src/lib/timeAllocation.ts`)
+
+- Switch the window constants to a full day:
+  ```ts
+  DEFAULT_WINDOW_START = "00:00"
+  DEFAULT_WINDOW_END   = "24:00"  // = 1440 min
   ```
-  <div className="mt-3 pt-3 border-t border-border">
-    <GoalAttachments goalId={goal.id} />
-  </div>
+  Update `toTime()` to wrap (`Math.floor(m/60) % 24`).
+- New input: `sleepBlocks: { date, start, end }[]` derived from `sleep_logs` for the current week + `sleep_preferences` projected onto nights without a log.
+- `expandCommitmentsToWeek()` is reused to produce per-day blocks; `computeFreeSlots()` and `stripConflicts()` now treat **commitments + sleep blocks** as protected. Tasks already allocated that overlap a newly logged sleep block are dropped (rescheduled on next allocation pass).
+- `summarize()` returns four buckets against a 168h week:
+  ```
+  totalHours      = 168
+  sleepHours      = sum of logged + projected sleep within week
+  committedHours  = commitments (existing)
+  allocatedHours  = goal work (existing)
+  freeHours       = 168 - sleep - committed - allocated
+  sleepTargetHours = preferences.target_hours * 7   // ~49–56
+  sleepRemainingHours = max(0, sleepTargetHours - sleepHours)
   ```
 
-### 2. Remove attachments from Roadmap milestones (`src/components/MilestonesSection.tsx`)
-- Remove the `import GoalAttachments` line and the per-milestone `<GoalAttachments goalId={goal.id} milestoneId={m.id} compact />` block.
-- The PDF upload inside `CheckInDialog` is kept untouched.
-- The `GoalAttachments` component, `useAttachments` hook, and `goal_attachments` table are left in place (dormant, not rendered) so nothing else breaks.
+## Hooks
 
-### 3. Responsive Create Goal dialog with sticky CTA (`src/components/CreateGoalDialog.tsx`)
-At small viewports (e.g. 673×528) the dialog currently overflows and the "Create Goal" button gets pushed off-screen with no scroll affordance.
+- `useSleepLogs(weekStart?)` — fetch logs for the week, plus mutations `useCreateSleepLog`, `useUpdateSleepLog`, `useDeleteSleepLog`.
+- `useSleepPreferences()` — read/update; defaults applied client-side if row missing.
+- `useTimeAllocation` — pull sleep logs + prefs, project future nights using `typical_bedtime/waketime` (or 23:00–07:00 fallback), pass to `computeFreeSlots`/`stripConflicts`/`summarize`.
 
-Refactor the dialog panel into a 3-region flex column constrained to viewport height, with a scrollable middle and a sticky footer:
-- Outer panel: `w-full max-w-lg sm:rounded-2xl rounded-t-2xl bg-card border border-border shadow-card flex flex-col max-h-[90vh] sm:max-h-[85vh]`
-- Header (title + X): `flex items-center justify-between p-4 sm:p-6 border-b border-border shrink-0`
-- Body (all form fields): wrap in `<div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">` so long content scrolls.
-- Footer with sticky CTA: new `<div className="p-4 sm:p-6 border-t border-border shrink-0 flex gap-2">` containing:
-  - Secondary "Cancel" (`variant="outline"`, `flex-1 sm:flex-none`) calling `onClose`.
-  - Existing "Create Goal" submit button: `flex-1 h-12 rounded-xl gradient-mint text-primary-foreground font-semibold text-base shadow-mint hover:opacity-90`.
-- Keep current motion + `stopPropagation` on inner panel.
+## UI
 
-Result: form scrolls within the dialog and the "Create Goal" CTA is always visible at the bottom.
+### `WeeklyCapacityCard.tsx`
+- Header label: `168h week · target {target}h sleep`.
+- Bar segments (left → right): **Sleep** (indigo), **Engaged** (amber), **Goal Work** (mint), **Free** (muted).
+- Stat grid becomes 4 columns on `sm+`, 2×2 on mobile: Sleep / Engaged / Goal / Free.
+- Sub-row under bar: `Sleep this week: {logged}h / {target}h · {remaining}h to go` with a thin secondary progress bar.
 
-### 4. FAB chooser: New Goal vs New Commitment (`src/pages/Dashboard.tsx`)
-Replace the current behavior where the floating + button immediately opens `CreateGoalDialog`.
+### New: `SleepLogDialog.tsx`
+- Inputs: date picker (defaults to last night), bedtime (`<input type="time">`), wake time, optional quality 1–5.
+- Renders a small **horizontal time-bar visualization** (00:00 → 24:00 ruler with the selected range highlighted; if range crosses midnight, draw two segments).
+- Saves to `sleep_logs`. Shows duration and a soft hint if outside 7–8h ("recommended 7–8h, no penalty").
 
-- New local state: `const [showAddChooser, setShowAddChooser] = useState(false);`
-- FAB `onClick` becomes `() => setShowAddChooser(true)`.
-- Build a small bottom-sheet style chooser inline (matches the existing dialog pattern in `CreateGoalDialog` — `framer-motion` overlay + panel sliding from the bottom), containing two large tappable cards:
-  - **New Goal** (Target icon, mint gradient accent) → closes chooser, opens `CreateGoalDialog` (`setShowCreate(true)`).
-  - **New Commitment** (Briefcase icon) → closes chooser, opens `CommitmentDialog` (`setEditingCommitment(null); setShowAddCommitment(true)`).
-- Each card: `w-full rounded-xl border border-border bg-card p-4 flex items-center gap-3 hover:border-primary/50` with title + one-line description ("Track a new outcome" / "Add work, classes, or recurring tasks").
-- Include a header "What do you want to add?" and an X close button.
-- Mobile-first: `rounded-t-2xl sm:rounded-2xl`, `max-w-md`, sticks to bottom on mobile, centered on desktop — same pattern as `CreateGoalDialog`.
-- Dismiss on overlay click or X.
+### New: `SleepCard.tsx` (Dashboard)
+- Compact card above `TodaysPlan`: last night's sleep range as a bar, weekly totals, "+ Log sleep" button (opens `SleepLogDialog`).
+- Empty state: "No sleep logged yet — tap to add."
 
-The top-right inline "+ New Goal" button in the greeting row keeps its current behavior (direct goal creation) for users who want the shortcut.
+### `CheckInDialog.tsx`
+- Add an optional **Sleep** section between Mood and Notes:
+  - "Log last night's sleep" toggle → reveals start/end time inputs (prefilled from preferences).
+  - On submit, if filled, also writes a `sleep_logs` row with `source='checkin'` (no duplicate if one already exists for that date — update instead).
+
+### Settings entry (lightweight)
+- Reuse the FAB chooser pattern or add a small gear in `WeeklyCapacityCard` opening a mini-dialog to edit `sleep_preferences` (target hours slider 6–10, typical bedtime/wake time). Out of scope: full settings page.
+
+## Scheduling guarantees
+- Allocator never produces a task overlapping a sleep block (logged or projected).
+- `stripConflicts` defensively removes any allocation that intersects a sleep block — so newly logged sleep instantly evicts conflicting goal work on the next render.
+- Commitments that overlap sleep are still shown as commitments (we don't auto-edit user data); only auto-generated goal-work allocations move.
 
 ## Out of scope
-- No DB migrations.
-- No removal of `goal_attachments` table/bucket/hook (kept dormant).
-- No changes to `CheckInDialog` PDF upload flow.
-- No new component file for the chooser — kept inline in `Dashboard.tsx` for simplicity (small UI, single use site).
+- Wearable / HealthKit / Google Fit imports.
+- Sleep quality analytics in Insights (can be a follow-up).
+- Multi-segment naps in a single day (logs are one block per `sleep_date`; users can add more rows manually).
+- Per-day variable target hours.
+
+## Result
+- Day = 24h, week = 168h, with sleep visibly carved out.
+- Users log real sleep ranges; the planner respects them and never schedules over them.
+- Weekly bar shows Sleep / Engaged / Goal Work / Free, plus a "X / target h sleep, Y to go" readout.
+- Check-ins can capture sleep in one tap; preferences let users set their own target and typical schedule without locking them in.
