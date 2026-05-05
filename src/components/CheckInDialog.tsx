@@ -1,11 +1,13 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MessageSquare, Smile, Meh, Frown, Heart, Star, FileUp, Loader2, Sparkles } from "lucide-react";
+import { X, MessageSquare, Smile, Meh, Frown, Heart, Star, FileUp, Loader2, Sparkles, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { useCreateCheckIn } from "@/hooks/useGoals";
 import type { Goal } from "@/hooks/useGoals";
 import { useMilestones, useToggleMilestone, useValidateCheckInPdf } from "@/hooks/useMilestones";
+import { useUpsertSleepLog, useSleepPreferences } from "@/hooks/useSleep";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -33,6 +35,8 @@ const CheckInDialog = ({ open, onClose, goal, milestoneId }: CheckInDialogProps)
   const { data: milestones } = useMilestones(goal.id);
   const validate = useValidateCheckInPdf();
   const toggleMilestone = useToggleMilestone();
+  const upsertSleep = useUpsertSleepLog();
+  const { data: sleepPrefs } = useSleepPreferences();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const nextMilestone =
@@ -45,6 +49,9 @@ const CheckInDialog = ({ open, onClose, goal, milestoneId }: CheckInDialogProps)
   const [uploading, setUploading] = useState(false);
   const [evaluation, setEvaluation] = useState<{ score: number; feedback: string; meets_expectations: boolean } | null>(null);
   const [override, setOverride] = useState(false);
+  const [logSleep, setLogSleep] = useState(false);
+  const [bedTime, setBedTime] = useState(sleepPrefs?.typical_bedtime ?? "23:00");
+  const [wakeTime, setWakeTime] = useState(sleepPrefs?.typical_waketime ?? "07:00");
 
   const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -112,12 +119,32 @@ const CheckInDialog = ({ open, onClose, goal, milestoneId }: CheckInDialogProps)
           if (nextMilestone && milestoneSatisfied) {
             toggleMilestone.mutate({ id: nextMilestone.id, completed: true, goal_id: goal.id });
           }
+          if (logSleep) {
+            const d = new Date();
+            d.setDate(d.getDate() - 1);
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, "0");
+            const dd = String(d.getDate()).padStart(2, "0");
+            const sleepDate = `${yyyy}-${mm}-${dd}`;
+            const [bh, bm] = bedTime.split(":").map(Number);
+            const [wh, wm] = wakeTime.split(":").map(Number);
+            const start = new Date(yyyy, d.getMonth(), d.getDate(), bh, bm);
+            const end = new Date(yyyy, d.getMonth(), d.getDate(), wh, wm);
+            if (wh * 60 + wm <= bh * 60 + bm) end.setDate(end.getDate() + 1);
+            upsertSleep.mutate({
+              sleep_date: sleepDate,
+              start_time: start.toISOString(),
+              end_time: end.toISOString(),
+              source: "checkin",
+            });
+          }
           setNotes("");
           setMood(null);
           setPdfFile(null);
           setPdfPath(null);
           setEvaluation(null);
           setOverride(false);
+          setLogSleep(false);
           onClose();
         },
       }
@@ -257,6 +284,27 @@ const CheckInDialog = ({ open, onClose, goal, milestoneId }: CheckInDialogProps)
                   );
                 })}
               </div>
+            </div>
+
+            {/* Sleep */}
+            <div className="rounded-xl border border-border p-3 bg-background/40">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={logSleep} onChange={(e) => setLogSleep(e.target.checked)} />
+                <Moon size={14} className="text-primary" />
+                <span className="text-sm font-semibold">Log last night's sleep</span>
+              </label>
+              {logSleep && (
+                <div className="grid grid-cols-2 gap-2 mt-3">
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Bedtime</label>
+                    <Input type="time" value={bedTime} onChange={(e) => setBedTime(e.target.value)} className="mt-1" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Wake</label>
+                    <Input type="time" value={wakeTime} onChange={(e) => setWakeTime(e.target.value)} className="mt-1" />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Notes */}
