@@ -106,6 +106,9 @@ const Dashboard = () => {
         {/* Weekly capacity */}
         <WeeklyCapacityCard />
 
+        {/* Sleep */}
+        <SleepCard />
+
         {/* Active Goals */}
         {isLoading ? (
           <div className="space-y-3">
