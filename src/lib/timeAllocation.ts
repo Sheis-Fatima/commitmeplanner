@@ -198,15 +198,38 @@ export interface AllocatableTask {
   goal_id: string;
   title: string;
   estimatedMinutes?: number;
+  /** ISO date (yyyy-mm-dd) the task must not be scheduled after (goal deadline). */
+  notAfter?: string | null;
 }
 
-export function allocateTasks(
+export interface AllocateOptions {
+  blockMinutes?: number;
+  maxDailyGoalMinutes?: number;
+  /** Max number of goal blocks placed on a single day (all goals combined). */
+  maxBlocksPerDay?: number;
+  /** Max number of blocks a single goal may take on a single day. */
+  maxPerGoalPerDay?: number;
+  /** Breathing room kept before the commitment / sleep block that follows. */
+  bufferMinutes?: number;
+  preferredStart?: number;
+  preferredEnd?: number;
+}
+
+export interface AllocationResult {
+  allocations: TaskAllocation[];
+  unscheduled: AllocatableTask[];
+}
+
+export function allocateTasksDetailed(
   tasks: AllocatableTask[],
   freeSlots: FreeSlot[],
-  opts: { blockMinutes?: number; maxDailyGoalMinutes?: number; preferredStart?: number; preferredEnd?: number } = {},
-): TaskAllocation[] {
+  opts: AllocateOptions = {},
+): AllocationResult {
   const block = opts.blockMinutes ?? DEFAULT_BLOCK_MIN;
   const maxDaily = opts.maxDailyGoalMinutes ?? DEFAULT_MAX_DAILY_GOAL_MIN;
+  const maxBlocksPerDay = opts.maxBlocksPerDay ?? 2;
+  const maxPerGoalPerDay = opts.maxPerGoalPerDay ?? 1;
+  const buffer = opts.bufferMinutes ?? 15;
   const preferStart = opts.preferredStart ?? toMin("08:00");
   const preferEnd = opts.preferredEnd ?? toMin("22:00");
 
@@ -223,34 +246,89 @@ export function allocateTasks(
       return a.startMin - b.startMin;
     });
 
-  const dailyUsed: Record<string, number> = {};
-  const allocations: TaskAllocation[] = [];
+  const dates = Array.from(new Set(workingSlots.map((s) => s.date))).sort();
 
-  for (const task of tasks) {
+  // Queue of pending tasks per goal, preserving incoming order
+  const queues = new Map<string, AllocatableTask[]>();
+  const goalOrder: string[] = [];
+  for (const t of tasks) {
+    if (!queues.has(t.goal_id)) {
+      queues.set(t.goal_id, []);
+      goalOrder.push(t.goal_id);
+    }
+    queues.get(t.goal_id)!.push(t);
+  }
+
+  const allocations: TaskAllocation[] = [];
+  let rotation = 0;
+
+  const place = (task: AllocatableTask, date: string, dailyMin: number): number | null => {
     const need = task.estimatedMinutes ?? block;
+    if (dailyMin + need > maxDaily) return null;
     for (const slot of workingSlots) {
-      const used = dailyUsed[slot.date] || 0;
-      if (used >= maxDaily) continue;
-      const available = slot.endMin - slot.startMin;
-      const cap = Math.min(available, maxDaily - used);
-      if (cap < need) continue;
+      if (slot.date !== date) continue;
+      const endsAtMidnight = slot.endMin >= DEFAULT_WINDOW_END_MIN;
+      const usable = slot.endMin - slot.startMin - (endsAtMidnight ? 0 : buffer);
+      if (usable < need) continue;
       const startMin = slot.startMin;
       const endMin = startMin + need;
       allocations.push({
         stepId: task.id,
         goalId: task.goal_id,
         title: task.title,
-        date: slot.date,
+        date,
         start: toTime(startMin),
         end: toTime(endMin),
         minutes: need,
       });
-      slot.startMin = endMin;
-      dailyUsed[slot.date] = used + need;
-      break;
+      slot.startMin = endMin + buffer;
+      return need;
     }
+    return null;
+  };
+
+  for (const date of dates) {
+    let blocksToday = 0;
+    let minutesToday = 0;
+    const perGoalToday: Record<string, number> = {};
+
+    // Round-robin across goals so one goal never eats the whole day
+    let guard = 0;
+    while (blocksToday < maxBlocksPerDay && guard < goalOrder.length * maxBlocksPerDay + goalOrder.length) {
+      guard++;
+      let placedThisPass = false;
+      for (let i = 0; i < goalOrder.length && blocksToday < maxBlocksPerDay; i++) {
+        const goalId = goalOrder[(rotation + i) % goalOrder.length];
+        if ((perGoalToday[goalId] || 0) >= maxPerGoalPerDay) continue;
+        const q = queues.get(goalId)!;
+        const idx = q.findIndex((t) => !t.notAfter || date <= t.notAfter);
+        if (idx === -1) continue;
+        const task = q[idx];
+        const used = place(task, date, minutesToday);
+        if (used === null) continue;
+        q.splice(idx, 1);
+        minutesToday += used;
+        blocksToday++;
+        perGoalToday[goalId] = (perGoalToday[goalId] || 0) + 1;
+        placedThisPass = true;
+      }
+      if (!placedThisPass) break;
+    }
+    rotation++;
   }
-  return allocations;
+
+  const unscheduled: AllocatableTask[] = [];
+  for (const q of queues.values()) unscheduled.push(...q);
+
+  return { allocations, unscheduled };
+}
+
+export function allocateTasks(
+  tasks: AllocatableTask[],
+  freeSlots: FreeSlot[],
+  opts: AllocateOptions = {},
+): TaskAllocation[] {
+  return allocateTasksDetailed(tasks, freeSlots, opts).allocations;
 }
 
 export function stripConflicts(
