@@ -29,6 +29,6 @@ New behaviour:
 
 - `useUpdateGoal` and `useDeleteGoal` already exist in `src/hooks/useGoals.ts`; `CreateGoalDialog` gains an optional `editGoal` prop and switches mutation accordingly.
 - `src/lib/timeAllocation.ts`: `allocateTasks` gains `maxBlocksPerDay`, `maxPerGoalPerDay`, `bufferMinutes` and a per-task `notAfter` date; allocation iterates day-by-day round-robin over goals rather than task-by-task over slots.
-- `useAllActiveGoalSteps` also selects `target_date` per goal so `useTimeAllocation` can pass `notAfter`; unplaceable steps are returned as `unscheduled` for the dashboard notice.
+- `useAllActiveGoalSteps` also selects `target_date` per goal so `useTimeAllocation` can pass `notAfter`; allocation runs in escalating passes (relaxed limits, then higher blocks/day, then higher daily minutes) until no step is left unplaced before its deadline.
 - `useMilestones.ts`: `dueDateFor` derives its step from the span between today and `goal.target_date`, divided by the number of periods, and never exceeds the target date.
 - No database changes.
