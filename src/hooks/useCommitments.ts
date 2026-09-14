@@ -99,7 +99,7 @@ export const useUpdateCommitment = () => {
   });
 };
 
-export const useResolveCommitment = () => {
+export const useCompleteCommitment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -113,11 +113,14 @@ export const useResolveCommitment = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["commitments"] });
       queryClient.invalidateQueries({ queryKey: ["all_active_goal_steps"] });
-      toast.success("Commitment resolved!");
+      toast.success("Commitment completed!");
     },
     onError: (err: Error) => toast.error(err.message),
   });
 };
+
+/** @deprecated use useCompleteCommitment */
+export const useResolveCommitment = useCompleteCommitment;
 
 export const useDeleteCommitment = () => {
   const queryClient = useQueryClient();

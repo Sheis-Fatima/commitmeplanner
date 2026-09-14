@@ -134,7 +134,7 @@ const WeekCalendar = () => {
               {dayCommitments.map((b, idx) => (
                 <div
                   key={`c-${idx}`}
-                  className="absolute left-0.5 right-0.5 rounded bg-amber-500/30 border border-amber-500/50 px-1 text-[9px] text-foreground overflow-hidden"
+                  className="absolute left-0.5 right-0.5 rounded bg-secondary border border-border px-1 text-[9px] text-secondary-foreground overflow-hidden"
                   style={blockStyle(b.start, b.end)}
                   title={b.title}
                 >
@@ -171,7 +171,7 @@ const WeekCalendar = () => {
       </div>
 
       <div className="flex items-center gap-3 mt-3 text-[10px] text-muted-foreground">
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-amber-500/50" /> Commitments</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-secondary border border-border" /> Commitments</span>
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm gradient-mint" /> Goal blocks</span>
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-indigo-500/40" /> Sleep</span>
       </div>
