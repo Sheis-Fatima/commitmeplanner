@@ -5,7 +5,7 @@ import { AnimatePresence } from "framer-motion";
 import AppHeader from "@/components/AppHeader";
 import AppShell from "@/components/AppShell";
 import { useGoals } from "@/hooks/useGoals";
-import { useCommitments, useResolveCommitment, type Commitment } from "@/hooks/useCommitments";
+import { useCommitments, useCompleteCommitment, type Commitment } from "@/hooks/useCommitments";
 import { useEmergencyCommitments } from "@/hooks/useEmergencyCommitments";
 import { useAuth } from "@/contexts/AuthContext";
 import CreateGoalDialog from "@/components/CreateGoalDialog";
@@ -28,7 +28,7 @@ const Dashboard = () => {
   const { data: goals, isLoading } = useGoals();
   const { data: commitments } = useCommitments();
   const { data: emergencies } = useEmergencyCommitments();
-  const resolveCommitment = useResolveCommitment();
+  const completeCommitment = useCompleteCommitment();
   const [showCreate, setShowCreate] = useState(false);
   const [showAddCommitment, setShowAddCommitment] = useState(false);
   const [showEmergency, setShowEmergency] = useState(false);
@@ -219,9 +219,9 @@ const Dashboard = () => {
                     <Pencil size={16} />
                   </button>
                   <button
-                    onClick={() => resolveCommitment.mutate(c.id)}
+                    onClick={() => completeCommitment.mutate(c.id)}
                     className="text-muted-foreground hover:text-primary transition-colors"
-                    title="Mark as done"
+                    title="Mark as completed"
                   >
                     <CheckCircle2 size={18} />
                   </button>
