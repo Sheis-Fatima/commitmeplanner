@@ -298,6 +298,11 @@ const Dashboard = () => {
       </motion.button>
 
       <CreateGoalDialog open={showCreate} onClose={() => setShowCreate(false)} />
+      <CreateGoalDialog
+        open={!!editingGoal}
+        onClose={() => setEditingGoal(null)}
+        editGoal={editingGoal}
+      />
       <AnimatePresence>
         {showAddChooser && (
           <motion.div
