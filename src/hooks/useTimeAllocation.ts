@@ -4,7 +4,7 @@ import { useAllActiveGoalSteps } from "./useGoals";
 import { useSleepLogs, useSleepPreferences } from "./useSleep";
 import {
   computeFreeSlots,
-  allocateTasks,
+  allocateTasksDetailed,
   summarize,
   getWeekStart,
   stripConflicts,
@@ -79,6 +79,6 @@ export const useTimeAllocation = () => {
     const allocations = stripConflicts(result.allocations, cs, weekStart, allSleep);
     const unscheduled = result.unscheduled;
     const summary = summarize(cs, weekStart, allocations, allSleep, loggedSleepMin, target);
-    return { weekStart, freeSlots, allocations, summary, sleepBlocks: allSleep, loggedSleepMin, targetHours: target };
+    return { weekStart, freeSlots, allocations, unscheduled, summary, sleepBlocks: allSleep, loggedSleepMin, targetHours: target };
   }, [commitments, steps, sleepLogs, prefs, weekStart, weekEnd]);
 };
