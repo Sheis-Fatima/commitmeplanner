@@ -45,10 +45,30 @@ function periodsForFrequency(freq: string): number {
   }
 }
 
-function dueDateFor(index: number, freq: string, start = new Date()): string {
-  const d = new Date(start);
+// Spread milestone due dates across the time actually available, never past the goal deadline.
+function dueDateFor(
+  index: number,
+  freq: string,
+  periods: number,
+  targetDate?: string | null,
+  start = new Date(),
+): string {
+  const base = new Date(start);
+  base.setHours(0, 0, 0, 0);
+
+  if (targetDate) {
+    const end = new Date(targetDate + "T00:00:00");
+    const totalDays = Math.max(1, Math.round((end.getTime() - base.getTime()) / 86400000));
+    const share = totalDays / periods;
+    const offset = Math.max(1, Math.round(share * (index + 1)));
+    const d = new Date(base);
+    d.setDate(d.getDate() + Math.min(offset, totalDays));
+    return d.toISOString().slice(0, 10);
+  }
+
   const f = (freq || "weekly").toLowerCase();
   const step = f === "daily" ? 1 : f === "weekly" ? 7 : f === "biweekly" ? 14 : 30;
+  const d = new Date(base);
   d.setDate(d.getDate() + step * (index + 1));
   return d.toISOString().slice(0, 10);
 }
@@ -76,7 +96,7 @@ export const useGenerateMilestones = () => {
       return milestones.map((m, i) => ({
         ...m,
         period_index: i,
-        due_date: dueDateFor(i, goal.checkin_frequency),
+        due_date: dueDateFor(i, goal.checkin_frequency, periods, goal.target_date),
       }));
     },
     onError: (err: Error) => toast.error(err.message),

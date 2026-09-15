@@ -33,11 +33,12 @@ export const useAllActiveGoalSteps = () => {
     queryFn: async () => {
       const { data: goals, error: gErr } = await supabase
         .from("goals")
-        .select("id, title, status")
+        .select("id, title, status, target_date")
         .eq("status", "active");
       if (gErr) throw gErr;
       const goalIds = (goals ?? []).map((g) => g.id);
-      if (goalIds.length === 0) return [] as Array<GoalStep & { goal_title: string }>;
+      if (goalIds.length === 0)
+        return [] as Array<GoalStep & { goal_title: string; goal_target_date: string | null }>;
       const { data: steps, error: sErr } = await supabase
         .from("goal_steps")
         .select("*")
@@ -45,8 +46,12 @@ export const useAllActiveGoalSteps = () => {
         .eq("completed", false)
         .order("step_order", { ascending: true });
       if (sErr) throw sErr;
-      const goalMap = new Map((goals ?? []).map((g) => [g.id, g.title]));
-      return (steps ?? []).map((s) => ({ ...s, goal_title: goalMap.get(s.goal_id) ?? "" }));
+      const goalMap = new Map((goals ?? []).map((g) => [g.id, g]));
+      return (steps ?? []).map((s) => ({
+        ...s,
+        goal_title: goalMap.get(s.goal_id)?.title ?? "",
+        goal_target_date: goalMap.get(s.goal_id)?.target_date ?? null,
+      }));
     },
     enabled: isReady && !!user,
   });
@@ -126,6 +131,8 @@ export const useUpdateGoal = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["goals"] });
+      queryClient.invalidateQueries({ queryKey: ["all_active_goal_steps"] });
+      toast.success("Goal updated");
     },
     onError: (err: Error) => toast.error(err.message),
   });
