@@ -34,6 +34,7 @@ const Dashboard = () => {
   const [showEmergency, setShowEmergency] = useState(false);
   const [showAddChooser, setShowAddChooser] = useState(false);
   const [editingCommitment, setEditingCommitment] = useState<Commitment | null>(null);
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [checkInGoal, setCheckInGoal] = useState<Goal | null>(null);
 
   const activeGoals = goals?.filter((g) => g.status === "active") ?? [];

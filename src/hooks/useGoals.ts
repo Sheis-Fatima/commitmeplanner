@@ -131,6 +131,8 @@ export const useUpdateGoal = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["goals"] });
+      queryClient.invalidateQueries({ queryKey: ["all_active_goal_steps"] });
+      toast.success("Goal updated");
     },
     onError: (err: Error) => toast.error(err.message),
   });
