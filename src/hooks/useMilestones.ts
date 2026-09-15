@@ -96,7 +96,7 @@ export const useGenerateMilestones = () => {
       return milestones.map((m, i) => ({
         ...m,
         period_index: i,
-        due_date: dueDateFor(i, goal.checkin_frequency),
+        due_date: dueDateFor(i, goal.checkin_frequency, periods, goal.target_date),
       }));
     },
     onError: (err: Error) => toast.error(err.message),
