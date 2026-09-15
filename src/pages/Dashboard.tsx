@@ -135,7 +135,19 @@ const Dashboard = () => {
                           {goal.category}
                         </span>
                       )}
+                      <button
+                        onClick={() => setEditingGoal(goal)}
+                        className="ml-auto text-muted-foreground hover:text-primary transition-colors shrink-0"
+                        title="Edit goal"
+                      >
+                        <Pencil size={15} />
+                      </button>
                     </div>
+                    {goal.target_date && (
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">
+                        Deadline {new Date(goal.target_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </p>
+                    )}
                     <div className="mt-3 h-1.5 rounded-full bg-muted overflow-hidden">
                       <motion.div
                         className="h-full rounded-full gradient-mint"
