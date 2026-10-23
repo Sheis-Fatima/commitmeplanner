@@ -100,7 +100,7 @@ const Onboarding = () => {
       }
 
       toast.success("You're all set! Let's go.");
-      navigate("/", { replace: true });
+      navigate("/app", { replace: true });
     } catch (err: any) {
       toast.error(err.message || "Something went wrong");
     } finally {

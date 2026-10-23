@@ -1,4 +1,4 @@
-import { LogOut, User } from "lucide-react";
+import { Bell, LogOut, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -7,34 +7,36 @@ interface AppHeaderProps {
   showAvatar?: boolean;
 }
 
-const AppHeader = ({ title = "commitme", showAvatar = true }: AppHeaderProps) => {
-  const { signOut } = useAuth();
+const AppHeader = ({ title = "Overview", showAvatar = true }: AppHeaderProps) => {
+  const { user, signOut } = useAuth();
+  const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "there";
 
   const handleSignOut = async () => {
     await signOut();
-    toast.success("Signed out successfully");
+    toast.success("Signed out");
   };
 
   return (
-    <header className="flex items-center justify-between px-5 pt-4 pb-2">
+    <header className="flex items-center justify-between border-b border-white/[0.06] px-0 py-5 md:py-7">
       <div className="flex items-center gap-3">
         {showAvatar && (
-          <div className="h-10 w-10 rounded-full gradient-mint flex items-center justify-center">
-            <User size={20} className="text-primary-foreground" />
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-white/[0.04] ring-1 ring-white/[0.07] md:hidden">
+            <User size={18} className="text-primary" />
           </div>
         )}
-        <h1 className="font-display text-xl font-bold tracking-tight">
-          <span className="text-foreground">commit</span>
-          <span className="text-primary">me</span>
-        </h1>
+        <div>
+          <p className="font-display text-lg font-semibold tracking-tight">{title}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">Good to see you, {displayName.split(" ")[0]}.</p>
+        </div>
       </div>
-      <button
-        onClick={handleSignOut}
-        className="rounded-full p-2 text-muted-foreground hover:text-destructive transition-colors"
-        title="Sign out"
-      >
-        <LogOut size={20} />
-      </button>
+      <div className="flex items-center gap-1">
+        <button className="grid h-10 w-10 place-items-center rounded-xl text-muted-foreground hover:bg-white/[0.04] hover:text-foreground" aria-label="Notifications">
+          <Bell size={18} />
+        </button>
+        <button onClick={handleSignOut} className="grid h-10 w-10 place-items-center rounded-xl text-muted-foreground hover:bg-white/[0.04] hover:text-foreground md:hidden" aria-label="Sign out">
+          <LogOut size={18} />
+        </button>
+      </div>
     </header>
   );
 };

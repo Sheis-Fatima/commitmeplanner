@@ -19,7 +19,7 @@ const Auth = () => {
   const { user, isReady } = useAuthReady();
 
   if (isReady && user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/app" replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -47,7 +47,7 @@ const Auth = () => {
           password,
           options: {
             data: { full_name: fullName.trim() },
-            emailRedirectTo: window.location.origin,
+            emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}#/`,
           },
         });
         if (error) throw error;
@@ -66,7 +66,7 @@ const Auth = () => {
         toast.success("Welcome back!");
       } else if (mode === "forgot") {
         const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-          redirectTo: `${window.location.origin}/reset-password`,
+          redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}#/reset-password`,
         });
         if (error) throw error;
         toast.success("Check your email for the password reset link!");
@@ -95,8 +95,16 @@ const Auth = () => {
         </div>
         <h1 className="text-3xl font-bold text-foreground font-heading">commitme</h1>
         <p className="text-muted-foreground mt-2 text-sm">
-          {isForgot ? "Reset your password" : isSignUp ? "Start achieving your goals" : "Welcome back, keep going"}
+          {isForgot ? "Reset your password" : isSignUp ? "Build a plan that fits real life" : "Welcome back. Keep moving."}
         </p>
+        {!isForgot && (
+          <div className="mt-5 flex flex-wrap justify-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+            <span className="rounded-full border border-border bg-card px-2.5 py-1">Goals</span>
+            <span className="rounded-full border border-border bg-card px-2.5 py-1">Schedule</span>
+            <span className="rounded-full border border-border bg-card px-2.5 py-1">Sleep</span>
+            <span className="rounded-full border border-border bg-card px-2.5 py-1">Mood</span>
+          </div>
+        )}
       </motion.div>
 
       {/* Auth Card */}
@@ -223,7 +231,7 @@ const Auth = () => {
         </div>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          By continuing, you agree to commitme&apos;s Terms of Service
+          Your data stays tied to your account and is used to power your personal planning workspace.
         </p>
       </motion.div>
     </div>

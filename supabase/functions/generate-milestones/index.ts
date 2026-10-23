@@ -1,3 +1,4 @@
+import { callAI } from "../_shared/ai.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -10,19 +11,10 @@ serve(async (req) => {
 
   try {
     const { goalTitle, goalDescription, goalCategory, checkinFrequency, periods } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const n = Math.min(Math.max(Number(periods) || 6, 2), 12);
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+    const response = await callAI({
         messages: [
           {
             role: "system",
@@ -61,7 +53,6 @@ serve(async (req) => {
           },
         }],
         tool_choice: { type: "function", function: { name: "generate_milestones" } },
-      }),
     });
 
     if (!response.ok) {

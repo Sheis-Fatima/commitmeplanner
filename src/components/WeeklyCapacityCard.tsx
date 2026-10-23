@@ -1,75 +1,58 @@
 import { motion } from "framer-motion";
-import { Clock } from "lucide-react";
+import { Clock3, Moon, Sparkles } from "lucide-react";
 import { useTimeAllocation } from "@/hooks/useTimeAllocation";
 
 const WeeklyCapacityCard = () => {
   const { summary, loggedSleepMin } = useTimeAllocation();
-  const total = summary.totalHours || 1;
-  const sleepPct = (summary.sleepHours / total) * 100;
-  const committedPct = (summary.committedHours / total) * 100;
-  const allocatedPct = (summary.allocatedHours / total) * 100;
-  const freePct = Math.max(0, 100 - sleepPct - committedPct - allocatedPct);
+  const total = Math.max(summary.totalHours || 168, 1);
+  const sections = [
+    { label: "Sleep", value: summary.sleepHours, color: "bg-sky-400/70", icon: Moon },
+    { label: "Commitments", value: summary.committedHours, color: "bg-amber-300/80", icon: Clock3 },
+    { label: "Goal work", value: summary.allocatedHours, color: "bg-primary", icon: Sparkles },
+    { label: "Open", value: summary.freeHours, color: "bg-white/[0.08]", icon: null },
+  ];
 
-  const fmt = (h: number) => `${h.toFixed(1)}h`;
   const loggedH = loggedSleepMin / 60;
-  const targetH = summary.sleepTargetHours;
-  const sleepProgressPct = Math.min(100, (loggedH / Math.max(1, targetH)) * 100);
+  const sleepTarget = Math.max(summary.sleepTargetHours, 1);
+  const sleepProgress = Math.min(100, (loggedH / sleepTarget) * 100);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl bg-card p-4 shadow-card border border-border"
-    >
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Clock size={18} className="text-primary" />
-          <h3 className="font-display font-semibold">This Week</h3>
+    <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="panel p-5 sm:p-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="eyebrow">Capacity</p>
+          <h2 className="mt-1 text-xl font-semibold">Where your week is going</h2>
         </div>
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-          168h · {targetH.toFixed(0)}h sleep target
-        </span>
+        <span className="rounded-full border border-white/[0.07] bg-white/[0.025] px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">168h total</span>
       </div>
-
-      <div className="flex h-3 w-full rounded-full overflow-hidden bg-muted">
-        <div style={{ width: `${sleepPct}%` }} className="bg-indigo-500/70" />
-        <div style={{ width: `${committedPct}%` }} className="bg-amber-500/80" />
-        <div style={{ width: `${allocatedPct}%` }} className="bg-primary" />
-        <div style={{ width: `${freePct}%` }} className="bg-muted-foreground/20" />
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 text-center">
-        <div>
-          <p className="font-display font-bold text-lg text-indigo-400">{fmt(summary.sleepHours)}</p>
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Sleep</p>
-        </div>
-        <div>
-          <p className="font-display font-bold text-lg">{fmt(summary.committedHours)}</p>
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Engaged</p>
-        </div>
-        <div>
-          <p className="font-display font-bold text-lg text-primary">{fmt(summary.allocatedHours)}</p>
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Goal Work</p>
-        </div>
-        <div>
-          <p className="font-display font-bold text-lg">{fmt(summary.freeHours)}</p>
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Free</p>
+      <div className="mt-5 overflow-hidden rounded-full bg-white/[0.04]">
+        <div className="flex h-3 w-full">
+          {sections.map((item) => <div key={item.label} className={item.color} style={{ width: `${Math.max(0, item.value / total * 100)}%` }} />)}
         </div>
       </div>
-
-      <div className="mt-4 pt-3 border-t border-border/50">
-        <div className="flex items-center justify-between text-[11px] mb-1">
-          <span className="text-muted-foreground">Sleep logged</span>
-          <span className="text-foreground font-semibold">
-            {loggedH.toFixed(1)}h / {targetH.toFixed(0)}h
-            <span className="text-muted-foreground font-normal"> · {summary.sleepRemainingHours.toFixed(1)}h to go</span>
-          </span>
+      <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4">
+        {sections.map(({ label, value, icon: Icon }) => (
+          <div key={label} className="flex items-center gap-2">
+            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white/[0.035] text-muted-foreground">
+              {Icon ? <Icon size={14} /> : <span className="h-2 w-2 rounded-full bg-white/20" />}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">{value.toFixed(1)}h</p>
+              <p className="truncate text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-5 border-t border-white/[0.06] pt-4">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">Sleep target</span>
+          <span className="font-medium">{loggedH.toFixed(1)}h logged · {sleepTarget.toFixed(1)}h target</span>
         </div>
-        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-          <div className="h-full bg-indigo-500/70" style={{ width: `${sleepProgressPct}%` }} />
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.05]">
+          <motion.div initial={{ width: 0 }} animate={{ width: `${sleepProgress}%` }} className="h-full rounded-full bg-sky-400/70" />
         </div>
       </div>
-    </motion.div>
+    </motion.section>
   );
 };
 

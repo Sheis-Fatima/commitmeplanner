@@ -25,6 +25,23 @@ export interface SleepBlock {
   source: "logged" | "projected";
 }
 
+export interface EmergencyCommitmentLike {
+  id: string;
+  title: string;
+  start_date: string;
+  end_date: string;
+  time_of_day: string | null;
+  resolved: boolean;
+}
+
+export interface PlanningBlock {
+  date: string;
+  start: number;
+  end: number;
+  title: string;
+  kind: "emergency";
+}
+
 export interface AllocationSummary {
   totalHours: number;
   sleepHours: number;
@@ -93,6 +110,32 @@ export function expandCommitmentsToWeek(
   return out;
 }
 
+
+// Expand active emergency commitments into protected calendar blocks.
+// An all-day interruption reserves the whole day. A timed interruption reserves one hour.
+export function expandEmergencyCommitmentsToWeek(
+  emergencies: EmergencyCommitmentLike[],
+  weekStart: Date,
+): PlanningBlock[] {
+  const out: PlanningBlock[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + i);
+    const date = isoDate(d);
+    for (const e of emergencies) {
+      if (e.resolved) continue;
+      if (date < e.start_date || date > e.end_date) continue;
+      if (!e.time_of_day) {
+        out.push({ date, start: 0, end: 1440, title: e.title, kind: "emergency" });
+        continue;
+      }
+      const start = toMin(e.time_of_day);
+      out.push({ date, start, end: Math.min(1440, start + 60), title: e.title, kind: "emergency" });
+    }
+  }
+  return out;
+}
+
 // Convert a logged sleep range (with absolute timestamps) into per-day minute blocks.
 // Splits at midnight if needed.
 export function sleepLogToBlocks(start: Date, end: Date, source: "logged" | "projected" = "logged"): SleepBlock[] {
@@ -143,12 +186,18 @@ export function projectSleepForWeek(
   return out;
 }
 
-function blocksForDay(date: string, commitments: ReturnType<typeof expandCommitmentsToWeek>, sleep: SleepBlock[]) {
+function blocksForDay(
+  date: string,
+  commitments: ReturnType<typeof expandCommitmentsToWeek>,
+  sleep: SleepBlock[],
+  extraBlocks: PlanningBlock[] = [],
+) {
   const winS = 0;
   const winE = DEFAULT_WINDOW_END_MIN;
   const all = [
     ...commitments.filter((b) => b.date === date).map((b) => ({ start: b.start, end: b.end })),
     ...sleep.filter((b) => b.date === date).map((b) => ({ start: b.start, end: b.end })),
+    ...extraBlocks.filter((b) => b.date === date).map((b) => ({ start: b.start, end: b.end })),
   ]
     .map((b) => ({ start: Math.max(b.start, winS), end: Math.min(b.end, winE) }))
     .filter((b) => b.end > b.start)
@@ -166,6 +215,7 @@ export function computeFreeSlots(
   commitments: Commitment[],
   weekStart: Date,
   sleepBlocks: SleepBlock[] = [],
+  extraBlocks: PlanningBlock[] = [],
 ): FreeSlot[] {
   const winS = 0;
   const winE = DEFAULT_WINDOW_END_MIN;
@@ -177,7 +227,7 @@ export function computeFreeSlots(
     d.setDate(d.getDate() + i);
     const dayIndex = d.getDay();
     const date = isoDate(d);
-    const merged = blocksForDay(date, expanded, sleepBlocks);
+    const merged = blocksForDay(date, expanded, sleepBlocks, extraBlocks);
 
     let cursor = winS;
     for (const b of merged) {

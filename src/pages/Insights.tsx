@@ -5,6 +5,7 @@ import AppHeader from "@/components/AppHeader";
 import AppShell from "@/components/AppShell";
 import { useGoals } from "@/hooks/useGoals";
 import { useAllCheckIns } from "@/hooks/useInsightsData";
+import { useDailyMoodLogs } from "@/hooks/useDailyMood";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const moodIcons: Record<number, { icon: typeof Smile; label: string }> = {
@@ -18,8 +19,9 @@ const moodIcons: Record<number, { icon: typeof Smile; label: string }> = {
 const Insights = () => {
   const { data: goals, isLoading: goalsLoading } = useGoals();
   const { data: checkIns, isLoading: checkInsLoading } = useAllCheckIns();
+  const { data: dailyMoods, isLoading: dailyMoodsLoading } = useDailyMoodLogs(35);
 
-  const isLoading = goalsLoading || checkInsLoading;
+  const isLoading = goalsLoading || checkInsLoading || dailyMoodsLoading;
 
   const stats = useMemo(() => {
     if (!goals || !checkIns) return null;
@@ -84,6 +86,11 @@ const Insights = () => {
     }
     const maxWeekly = Math.max(1, ...weeklyData.map((d) => d.count));
 
+    const dailyMoodAverage = dailyMoods?.length
+      ? (dailyMoods.reduce((sum, entry) => sum + entry.mood, 0) / dailyMoods.length).toFixed(1)
+      : null;
+
+    const dailyMoodSeries = dailyMoods?.map((entry) => entry.mood) ?? [];
     return {
       activeGoals: activeGoals.length,
       completedGoals: completedGoals.length,
@@ -95,6 +102,8 @@ const Insights = () => {
       avgMood,
       moodCounts,
       moodTotal,
+      dailyMoodAverage,
+      dailyMoodSeries,
       heatmap,
       maxHeatmap,
       weeklyData,
@@ -188,6 +197,32 @@ const Insights = () => {
               </div>
               {stats.streak >= 3 && <Flame size={32} className="text-primary animate-pulse" />}
             </motion.div>
+
+            {stats.dailyMoodAverage && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.23 }}
+                className="rounded-xl bg-card border border-border p-4 shadow-card"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Daily Mood</p>
+                    <p className="font-display text-3xl font-bold mt-1">{stats.dailyMoodAverage}/5</p>
+                    <p className="text-xs text-muted-foreground mt-1">Average across your last {stats.dailyMoodSeries.length} mood check-in{stats.dailyMoodSeries.length !== 1 ? "s" : ""}</p>
+                  </div>
+                  <div className="flex items-end gap-1 h-12">
+                    {stats.dailyMoodSeries.slice(-14).map((value, index) => (
+                      <div
+                        key={index}
+                        className="w-1.5 rounded-full bg-primary/70"
+                        style={{ height: `${8 + value * 7}px`, opacity: 0.25 + value * 0.12 }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
 
             {/* Mood Summary */}
             {stats.avgMood && (

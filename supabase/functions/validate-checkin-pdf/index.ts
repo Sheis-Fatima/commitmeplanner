@@ -1,3 +1,4 @@
+import { callAI } from "../_shared/ai.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
@@ -11,8 +12,6 @@ serve(async (req) => {
 
   try {
     const { pdfPath, deliverable, goalTitle, milestoneTitle } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
     if (!pdfPath || !deliverable) throw new Error("pdfPath and deliverable are required");
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -32,11 +31,7 @@ serve(async (req) => {
     const base64 = btoa(binary);
     const dataUrl = `data:application/pdf;base64,${base64}`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+    const response = await callAI({
         messages: [
           {
             role: "system",
@@ -68,7 +63,6 @@ serve(async (req) => {
           },
         }],
         tool_choice: { type: "function", function: { name: "submit_evaluation" } },
-      }),
     });
 
     if (!response.ok) {

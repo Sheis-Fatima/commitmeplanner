@@ -1,27 +1,112 @@
-# Goal Compass
+# commitmeplanner
 
-this is a productivity tool that allows users to achieve their goals outside their current commitment and it also helps to break goals into step by step procedure in the case where the user don't have idea of how to achieve their goals, it includes flexibility of checking in of goals weekly or monthly not being confined to daily check in
-It allows users to include emergency commitment to help redesign their schedule and goal
+A personal planning workspace built around a simple idea: **commit to what matters, then plan around real life.**
 
-This project was built with [Lovable](https://lovable.dev).
+commitmeplanner helps users manage goals, recurring commitments, sleep, interruptions, and progress without forcing everything into a rigid daily checklist.
 
-**Live app**: https://commitmeplanner.lovable.app
+## What V1 includes
 
-## Build with Lovable
+- Goal creation with deadlines, categories, and weekly or monthly check-ins
+- Goal steps and milestone-based progress
+- Recurring commitments that are protected in the schedule
+- Emergency interruptions that consume planning capacity without automatically pausing every goal
+- Sleep logging and sleep preferences
+- Daily mood tracking as a separate wellbeing signal
+- Adaptive time allocation based on commitments, sleep, deadlines, and available capacity
+- Insights for progress, activity, goal check-ins, sleep, and mood
+- Optional AI assistance for roadmap generation, milestone generation, and deliverable review
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/e959b9a5-dc00-4130-b1a2-3f3fbae3b7b7).
+The planning engine is deterministic application logic. AI is an assistive layer, not the source of truth for the user's schedule.
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+## Stack
 
-## Development
+- React + TypeScript
+- Vite
+- Tailwind CSS
+- React Router
+- TanStack Query
+- Supabase Authentication, Database, Storage, and Edge Functions
+- Framer Motion
+- Vitest
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+## Local development
 
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
+Requirements: Node.js 20+ and npm.
+
+```bash
+git clone https://github.com/gODtECH-Ctl-Create/commitmeplanner.git
+cd commitmeplanner
+npm ci
+cp .env.example .env
 npm run dev
 ```
+
+Set these values in `.env`:
+
+```env
+VITE_SUPABASE_URL=
+VITE_SUPABASE_PUBLISHABLE_KEY=
+VITE_BASE_PATH=/
+```
+
+## AI configuration
+
+The AI Edge Functions are provider-neutral and use an OpenAI-compatible chat completions endpoint.
+
+Configure these Supabase Edge Function secrets:
+
+```text
+AI_BASE_URL
+AI_API_KEY
+AI_MODEL
+```
+
+Example:
+
+```text
+AI_BASE_URL=https://your-provider.example/v1
+AI_MODEL=your-model-id
+```
+
+No Lovable AI gateway is required by the application.
+
+## GitHub Pages
+
+The first public frontend build is deployed through GitHub Actions.
+
+Repository Pages URL:
+
+**https://godtech-ctl-create.github.io/commitmeplanner/**
+
+The V1 frontend includes the current public Supabase browser configuration and also accepts `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` as deployment-time overrides. The workflow supplies `VITE_BASE_PATH=/commitmeplanner/` during the production build.
+
+Because V1 uses hash-based routing, direct navigation works on GitHub Pages without a server-side rewrite.
+
+For Supabase Authentication, add the Pages URL to the project's allowed redirect URLs, including:
+
+```text
+https://godtech-ctl-create.github.io/commitmeplanner/
+https://godtech-ctl-create.github.io/commitmeplanner/#/reset-password
+```
+
+## Product direction
+
+The long-term product is an adaptive commitment planner:
+
+```text
+Goals + Commitments + Sleep + Interruptions
+                    ↓
+             Capacity engine
+                    ↓
+              Daily / weekly plan
+                    ↓
+              Check-ins + signals
+                    ↓
+               Insights + review
+```
+
+Mood is tracked, but does not automatically rewrite the user's plan. Cycle tracking is intentionally outside the current scope and can be introduced later as an optional module based on user feedback.
+
+## License
+
+License to be added before a public open-source release.

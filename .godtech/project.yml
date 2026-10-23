@@ -1,0 +1,8 @@
+project:
+  state: active
+  priority: high
+  current_focus: "Adaptive commitment planning experience"
+  next_step: "Stabilize the current application and continue the adaptive planning workflow"
+  blockers: []
+  status_note: "Planning engine is deterministic; AI remains assistive."
+  last_worked_on: "2026-10-03"

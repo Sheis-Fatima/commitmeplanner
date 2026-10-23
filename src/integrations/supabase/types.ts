@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      daily_mood_logs: {
+        Row: {
+          id: string
+          user_id: string
+          check_in_date: string
+          mood: number
+          note: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          check_in_date: string
+          mood: number
+          note?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          check_in_date?: string
+          mood?: number
+          note?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_mood_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       check_ins: {
         Row: {
           ai_feedback: string | null

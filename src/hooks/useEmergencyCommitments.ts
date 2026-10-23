@@ -81,14 +81,11 @@ export const useCreateEmergencyCommitment = () => {
 
       return { commitment: data, pausedCount: activeGoals?.length ?? 0 };
     },
-    onSuccess: ({ pausedCount }) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["emergency_commitments"] });
       queryClient.invalidateQueries({ queryKey: ["goals"] });
-      if (pausedCount > 0) {
-        toast.success(`Plan adjusted! ${pausedCount} goal${pausedCount !== 1 ? "s" : ""} paused, deadlines extended.`);
-      } else {
-        toast.success("Plan adjusted!");
-      }
+      queryClient.invalidateQueries({ queryKey: ["time_allocation"] });
+      toast.success("Plan updated around the interruption.");
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -105,29 +102,13 @@ export const useResolveEmergency = () => {
         .eq("id", id);
       if (error) throw error;
 
-      const { data: pausedGoals } = await supabase
-        .from("goals")
-        .select("id")
-        .eq("status", "paused");
-
-      if (pausedGoals && pausedGoals.length > 0) {
-        await Promise.all(
-          pausedGoals.map((g) =>
-            supabase.from("goals").update({ status: "active" as const }).eq("id", g.id)
-          )
-        );
-      }
-
-      return { resumedCount: pausedGoals?.length ?? 0 };
+      return true;
     },
-    onSuccess: ({ resumedCount }) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["emergency_commitments"] });
       queryClient.invalidateQueries({ queryKey: ["goals"] });
-      if (resumedCount > 0) {
-        toast.success(`You're back on track! ${resumedCount} goal${resumedCount !== 1 ? "s" : ""} resumed.`);
-      } else {
-        toast.success("You're back on track!");
-      }
+      queryClient.invalidateQueries({ queryKey: ["time_allocation"] });
+      toast.success("Interruption resolved. Your plan is recalculated.");
     },
     onError: (err: Error) => toast.error(err.message),
   });

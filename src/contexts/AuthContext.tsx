@@ -39,7 +39,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         // Intercept password recovery — redirect before dashboard renders
         if (event === "PASSWORD_RECOVERY") {
-          window.location.href = "/reset-password";
+          window.location.assign(`${import.meta.env.BASE_URL}#/reset-password`);
           return;
         }
 

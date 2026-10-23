@@ -31,7 +31,7 @@ const QuickAdjustDialog = ({ open, onClose }: Props) => {
     if (!title.trim()) return;
     const start = new Date();
     const end = new Date();
-    end.setDate(end.getDate() + durationDays);
+    end.setDate(end.getDate() + durationDays - 1);
 
     createEmergency.mutate(
       {
@@ -153,7 +153,7 @@ const QuickAdjustDialog = ({ open, onClose }: Props) => {
             {activeGoals.length > 0 && (
               <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
                 <p className="text-xs text-amber-700 dark:text-amber-400">
-                  This will <strong>pause {activeGoals.length} active goal{activeGoals.length !== 1 ? "s" : ""}</strong> and extend deadlines by <strong>{durationDays} day{durationDays !== 1 ? "s" : ""}</strong>.
+                  Your interruption will be protected on the calendar. Affected goal work will move around it; <strong>goals are not automatically paused</strong>.
                 </p>
               </div>
             )}

@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCommitments } from "@/hooks/useCommitments";
 import { useAllActiveGoalSteps } from "@/hooks/useGoals";
 import { useSleepLogs, useSleepPreferences } from "@/hooks/useSleep";
+import { useEmergencyCommitments } from "@/hooks/useEmergencyCommitments";
 import {
   computeFreeSlots,
   allocateTasks,
@@ -11,6 +12,7 @@ import {
   getWeekStart,
   sleepLogToBlocks,
   projectSleepForWeek,
+  expandEmergencyCommitmentsToWeek,
   type SleepBlock,
 } from "@/lib/timeAllocation";
 
@@ -27,6 +29,7 @@ const WeekCalendar = () => {
   const { data: commitments } = useCommitments();
   const { data: steps } = useAllActiveGoalSteps();
   const { data: prefs } = useSleepPreferences();
+  const { data: emergencies } = useEmergencyCommitments();
 
   const weekStart = useMemo(() => {
     const d = getWeekStart();
@@ -43,7 +46,7 @@ const WeekCalendar = () => {
     weekEnd.toISOString().slice(0, 10),
   );
 
-  const { commitmentBlocks, allocBlocks, sleepBlocks } = useMemo(() => {
+  const { commitmentBlocks, allocBlocks, sleepBlocks, emergencyBlocks } = useMemo(() => {
     const cs = commitments ?? [];
     const expanded = expandCommitmentsToWeek(cs, weekStart);
     const loggedBlocks: SleepBlock[] = [];
@@ -57,15 +60,16 @@ const WeekCalendar = () => {
     }
     const projected = projectSleepForWeek(weekStart, prefs?.typical_bedtime ?? "23:00", prefs?.typical_waketime ?? "07:00", loggedDates);
     const allSleep = [...loggedBlocks, ...projected];
-    const slots = computeFreeSlots(cs, weekStart, allSleep);
+    const emergencyBlocks = expandEmergencyCommitmentsToWeek(emergencies ?? [], weekStart);
+    const slots = computeFreeSlots(cs, weekStart, allSleep, emergencyBlocks);
     const tasks = (steps ?? []).map((s) => ({
       id: s.id,
       goal_id: s.goal_id,
       title: `${(s as any).goal_title ? (s as any).goal_title + ": " : ""}${s.title}`,
     }));
     const allocs = stripConflicts(allocateTasks(tasks, slots), cs, weekStart, allSleep);
-    return { commitmentBlocks: expanded, allocBlocks: allocs, sleepBlocks: allSleep };
-  }, [commitments, steps, weekStart, sleepLogs, prefs]);
+    return { commitmentBlocks: expanded, allocBlocks: allocs, sleepBlocks: allSleep, emergencyBlocks };
+  }, [commitments, steps, weekStart, sleepLogs, prefs, emergencies]);
 
   const dates = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart);
@@ -151,6 +155,17 @@ const WeekCalendar = () => {
                   {a.title}
                 </div>
               ))}
+              {emergencyBlocks.filter((b) => b.date === iso).map((b, idx) => (
+                <div
+                  key={`e-${idx}`}
+                  className="absolute left-0.5 right-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-700 dark:text-amber-300 px-1 text-[9px] overflow-hidden"
+                  style={blockStyle(b.start, b.end)}
+                  title={`Interruption: ${b.title}`}
+                >
+                  {b.title}
+                </div>
+              ))}
+
               {sleepBlocks.filter((b) => b.date === iso).map((b, idx) => (
                 <div
                   key={`s-${idx}`}
@@ -174,6 +189,7 @@ const WeekCalendar = () => {
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-secondary border border-border" /> Commitments</span>
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm gradient-mint" /> Goal blocks</span>
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-indigo-500/40" /> Sleep</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-amber-500/40" /> Interruptions</span>
       </div>
     </div>
   );

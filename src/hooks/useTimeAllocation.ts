@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useCommitments } from "./useCommitments";
 import { useAllActiveGoalSteps } from "./useGoals";
 import { useSleepLogs, useSleepPreferences } from "./useSleep";
+import { useEmergencyCommitments } from "./useEmergencyCommitments";
 import {
   computeFreeSlots,
   allocateTasksDetailed,
@@ -10,6 +11,7 @@ import {
   stripConflicts,
   sleepLogToBlocks,
   projectSleepForWeek,
+  expandEmergencyCommitmentsToWeek,
   type AllocatableTask,
   type SleepBlock,
 } from "@/lib/timeAllocation";
@@ -27,11 +29,13 @@ export const useTimeAllocation = () => {
   const toStr = weekEnd.toISOString().slice(0, 10);
   const { data: sleepLogs } = useSleepLogs(fromStr, toStr);
   const { data: prefs } = useSleepPreferences();
+  const { data: emergencies } = useEmergencyCommitments();
 
   return useMemo(() => {
     const cs = commitments ?? [];
     const logs = sleepLogs ?? [];
     const target = prefs?.target_hours ?? 7.5;
+    const emergencyBlocks = expandEmergencyCommitmentsToWeek(emergencies ?? [], weekStart);
 
     // Build sleep blocks from logs
     const loggedBlocks: SleepBlock[] = [];
@@ -51,7 +55,7 @@ export const useTimeAllocation = () => {
     const projected = projectSleepForWeek(weekStart, prefs?.typical_bedtime ?? "23:00", prefs?.typical_waketime ?? "07:00", loggedDates);
     const allSleep = [...loggedBlocks, ...projected];
 
-    const freeSlots = computeFreeSlots(cs, weekStart, allSleep);
+    const freeSlots = computeFreeSlots(cs, weekStart, allSleep, emergencyBlocks);
     const tasks: AllocatableTask[] = (steps ?? []).map((s) => ({
       id: s.id,
       goal_id: s.goal_id,
@@ -73,12 +77,12 @@ export const useTimeAllocation = () => {
       // Only keep escalating while deadline-bound steps are still unplaced.
       const blocked = result.unscheduled.some((t) => !!t.notAfter);
       if (!blocked) break;
-      result = allocateTasksDetailed(tasks, computeFreeSlots(cs, weekStart, allSleep), passes[i]);
+      result = allocateTasksDetailed(tasks, computeFreeSlots(cs, weekStart, allSleep, emergencyBlocks), passes[i]);
     }
 
     const allocations = stripConflicts(result.allocations, cs, weekStart, allSleep);
     const unscheduled = result.unscheduled;
     const summary = summarize(cs, weekStart, allocations, allSleep, loggedSleepMin, target);
-    return { weekStart, freeSlots, allocations, unscheduled, summary, sleepBlocks: allSleep, loggedSleepMin, targetHours: target };
-  }, [commitments, steps, sleepLogs, prefs, weekStart, weekEnd]);
+    return { weekStart, freeSlots, allocations, unscheduled, summary, sleepBlocks: allSleep, emergencyBlocks, loggedSleepMin, targetHours: target };
+  }, [commitments, steps, sleepLogs, prefs, emergencies, weekStart, weekEnd]);
 };
